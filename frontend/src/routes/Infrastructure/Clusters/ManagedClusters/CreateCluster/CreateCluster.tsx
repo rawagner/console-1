@@ -1,5 +1,6 @@
 /* Copyright Contributors to the Open Cluster Management project */
 
+import * as _ from 'lodash';
 import { AcmErrorBoundary, AcmPageContent, AcmPage, AcmPageHeader } from '@open-cluster-management/ui-components'
 import { PageSection } from '@patternfly/react-core'
 import { global_BackgroundColor_dark_100 as editorBackground } from '@patternfly/react-tokens'
@@ -13,7 +14,7 @@ import { useRecoilState } from 'recoil'
 // include monaco editor
 import MonacoEditor from 'react-monaco-editor'
 import 'monaco-editor/esm/vs/editor/editor.all.js'
-import 'monaco-editor/esm/vs/editor/standalone/browser/quickOpen/quickCommand.js'
+// import 'monaco-editor/esm/vs/editor/standalone/browser/quickOpen/quickCommand.js'
 import 'monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution.js'
 import { useHistory, useLocation } from 'react-router-dom'
 import TemplateEditor from 'temptifly'
@@ -36,8 +37,9 @@ import {
 import { createCluster } from '../../../../../lib/create-cluster'
 import { ProviderConnection, unpackProviderConnection } from '../../../../../resources/provider-connection'
 import { Secret } from '../../../../../resources/secret'
-import { createResource as createResourceTool } from '../../../../../lib/resource-request'
+import { createResource as createResourceTool, patchResource } from '../../../../../lib/resource-request'
 import { FeatureGates } from '../../../../../FeatureGates'
+import { AgentClusterInstallKind } from '../../../../../resources/agent-cluster-install'
 
 declare const window: any
 if (window.monaco) {
@@ -83,6 +85,7 @@ export default function CreateClusterPage() {
     const history = useHistory()
     const location = useLocation()
     const [secrets] = useRecoilState(secretsState)
+    const [readOnly, setReadOnly] = useState(false);
 
     const providerConnections = secrets.map(unpackProviderConnection)
     const ansibleCredentials = providerConnections.filter(
@@ -114,7 +117,7 @@ export default function CreateClusterPage() {
 
     // create button
     const [creationStatus, setCreationStatus] = useState<CreationStatus>()
-    const createResource = async (resourceJSON: { createResources: any[] }, control: any) => {
+    const createResource = async (resourceJSON: { createResources: any[] }, noRedirect: boolean) => {
         if (resourceJSON) {
             const { createResources } = resourceJSON
             const map = keyBy(createResources, 'kind')
@@ -201,9 +204,11 @@ export default function CreateClusterPage() {
 
                 // redirect to created cluster
                 if (status === 'DONE') {
-                    setTimeout(() => {
-                        history.push(NavigationPath.clusterDetails.replace(':id', clusterName as string))
-                    }, 2000)
+                    if (!noRedirect) {
+                        setTimeout(() => {
+                            history.push(NavigationPath.clusterDetails.replace(':id', clusterName as string))
+                        }, 2000)
+                    }
                 }
             }
         }
@@ -290,6 +295,92 @@ export default function CreateClusterPage() {
         }
     }
 
+    const onStepChange = (step: any, prevStep: any) => {
+        if (step.control && !!step.control.disableEditor !== !!readOnly) {
+            setReadOnly(step.control.disableEditor);
+        }
+        if(prevStep?.id === 'aiNetworkStep' && prevStep?.control?.active) {
+            const values = prevStep.control.active;
+            const agentClusterInstall = prevStep.control.agentClusterInstall;
+            const appendPatch = (
+                patches: any,
+                path: any,
+                newVal: any,
+                existingVal: any,
+              ) => {
+                if (!_.isEqual(newVal, existingVal) && newVal !== '') {
+                  patches.push({
+                    op: existingVal ? 'replace' : 'add',
+                    path,
+                    value: newVal,
+                  });
+                }
+              };
+            const patch = async () => {
+                try {
+                  const agentClusterInstallPatches: any[] = [];
+          
+                  appendPatch(
+                    agentClusterInstallPatches,
+                    '/spec/sshPublicKey',
+                    values.sshPublicKey,
+                    agentClusterInstall.spec.sshPublicKey,
+                  );
+          
+                  appendPatch(
+                    agentClusterInstallPatches,
+                    '/spec/networking/clusterNetwork',
+                    [
+                      {
+                        cidr: values.clusterNetworkCidr,
+                        hostPrefix: values.clusterNetworkHostPrefix,
+                      },
+                    ],
+                    agentClusterInstall.spec?.networking?.clusterNetwork,
+                  );
+          
+                  appendPatch(
+                    agentClusterInstallPatches,
+                    '/spec/networking/serviceNetwork',
+                    [values.serviceNetworkCidr],
+                    agentClusterInstall.spec?.networking?.serviceNetwork,
+                  );
+          
+                  appendPatch(
+                    agentClusterInstallPatches,
+                    '/spec/apiVIP',
+                    values.apiVip,
+                    agentClusterInstall.spec?.apiVIP,
+                  );
+          
+                  appendPatch(
+                    agentClusterInstallPatches,
+                    '/spec/ingressVIP',
+                    values.ingressVip,
+                    agentClusterInstall.spec?.ingressVIP,
+                  );
+          
+                  if (agentClusterInstallPatches.length > 0) {
+                      await patchResource(
+                          {
+                              apiVersion: 'extensions.hive.openshift.io/v1beta1',
+                              kind: AgentClusterInstallKind,
+                              metadata: {
+                                  name: agentClusterInstall.metadata.name,
+                                  namespace: agentClusterInstall.metadata.namespace,
+                              },
+                          },
+                          agentClusterInstallPatches
+                      ).promise;
+                  }
+                } catch (e) {
+                  throw new Error(`Failed to patch the AgentClusterInstall resource: ${e.message}`);
+                }
+            }
+            patch();
+        }
+    }  
+
     return (
         <AcmPage
             header={
@@ -324,7 +415,7 @@ export default function CreateClusterPage() {
                             wizardClassName={classes.wizardBody}
                             type={'cluster'}
                             title={'Cluster YAML'}
-                            monacoEditor={<MonacoEditor />}
+                            monacoEditor={<MonacoEditor options={{ readOnly }}/>}
                             controlData={controlData}
                             template={template}
                             portals={Portals}
@@ -340,6 +431,7 @@ export default function CreateClusterPage() {
                             i18n={i18n}
                             onControlInitialize={onControlInitialize}
                             onControlChange={onControlChange}
+                            onStepChange={onStepChange}
                         />
                     </PageSection>
                 </AcmPageContent>

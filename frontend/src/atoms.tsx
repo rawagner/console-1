@@ -28,6 +28,8 @@ import { Namespace, NamespaceKind } from './resources/namespace'
 import { PolicyReport, PolicyReportKind } from './resources/policy-report'
 import { Secret, SecretKind } from './resources/secret'
 import { SubmarinerConfig, SubmarinerConfigKind } from './resources/submariner-config'
+import { AgentClusterInstallKind } from './resources/agent-cluster-install'
+import { AgentKind } from './resources/agent'
 
 export const acmRouteState = atom<AcmRoute>({ key: 'acmRoute', default: '' as AcmRoute })
 export const bareMetalAssetsState = atom<BareMetalAsset[]>({ key: 'bareMetalAssets', default: [] })
@@ -65,6 +67,8 @@ export const secretsState = atom<Secret[]>({ key: 'secrets', default: [] })
 export const settingsState = atom<Settings>({ key: 'settings', default: {} })
 export const submarinerConfigsState = atom<SubmarinerConfig[]>({ key: 'submarinerconfigs', default: [] })
 export const ansibleJobState = atom<AnsibleJob[]>({ key: 'ansiblejobs', default: [] })
+export const agentClusterInstallsState = atom<any[]>({ key: 'agentclusterinstalls', default: [] })
+export const agentsState = atom<any[]>({ key: 'agents', default: [] })
 
 interface Settings {
     LOG_LEVEL?: string
@@ -118,8 +122,12 @@ export function LoadData(props: { children?: ReactNode }) {
     const [, setSettings] = useRecoilState(settingsState)
     const [, setSubmarinerConfigs] = useRecoilState(submarinerConfigsState)
     const [, setAnsibleJobs] = useRecoilState(ansibleJobState)
+    const [, setAgentClusterInstalls] = useRecoilState(agentClusterInstallsState)
+    const [, setAgents] = useRecoilState(agentsState)
 
     const setters: Record<string, SetterOrUpdater<any[]>> = {
+        [AgentKind]: setAgents,
+        [AgentClusterInstallKind]: setAgentClusterInstalls,
         [AnsibleJobKind]: setAnsibleJobs,
         [BareMetalAssetKind]: setBareMetalAssets,
         [CertificateSigningRequestKind]: setCertificateSigningRequests,
@@ -145,6 +153,7 @@ export function LoadData(props: { children?: ReactNode }) {
         [PolicyReportKind]: setPolicyReports,
         [SecretKind]: setSecrets,
         [SubmarinerConfigKind]: setSubmarinerConfigs,
+
     }
 
     useEffect(() => {

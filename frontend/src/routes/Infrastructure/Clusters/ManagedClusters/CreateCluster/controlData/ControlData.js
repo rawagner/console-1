@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import Handlebars from 'handlebars'
 import installConfigHbs from '../templates/install-config.hbs'
+import aiTemplateHbs from '../templates/assisted-installer/assisted-template.hbs'
 
 import controlDataAWS from './ControlDataAWS'
 import controlDataGCP from './ControlDataGCP'
@@ -12,11 +13,17 @@ import controlDataVMW from './ControlDataVMW'
 import controlDataBMC from './ControlDataBMC'
 import controlDataOST from './ControlDataOST'
 import { RedHatLogo, AwsLogo, GoogleLogo, AzureLogo, VMwareLogo, BaremetalLogo } from './Logos'
+import controlDataAI from './ControlDataAI'
 
 const installConfig =
     typeof installConfigHbs !== 'string'
         ? installConfigHbs
         : Handlebars.compile(fs.readFileSync(path.resolve(__dirname, '../templates/install-config.hbs'), 'utf8'))
+
+const aiTemplate =
+    typeof aiTemplateHbs !== 'string'
+        ? aiTemplateHbs
+        : Handlebars.compile(fs.readFileSync(path.resolve(__dirname, '../templates/assisted-installer/assisted-template.hbs'), 'utf8'))
 
 export const getActiveCardID = (control, fetchData = {}) => {
     const { requestedUIDs } = fetchData
@@ -87,6 +94,16 @@ export const controlData = [
         pauseControlCreationHereUntilSelected: true,
         scrollViewAfterSelection: 300,
         available: [
+            {
+                id: 'AI',
+                logo: <AwsLogo />,
+                title: 'cluster.create.ai.subtitle',
+                change: {
+                    insertControlData: controlDataAI,
+                    replacements: {},
+                    replaceTemplate: aiTemplate,
+                },
+            },
             {
                 id: 'AWS',
                 logo: <AwsLogo />,
