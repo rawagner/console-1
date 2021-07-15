@@ -55,12 +55,14 @@ const credentialProviders: Provider[] = [
     Provider.gcp,
     Provider.vmware,
     Provider.baremetal,
+    Provider.hybrid,
 ]
 
 enum ProviderGroup {
     Automation = 'Automation & other credentials',
     Datacenter = 'Datacenter credentials',
     CloudProvider = 'Cloud provider credentials',
+    CentrallyManaged = 'Centrally managed',
 }
 
 const providerGroup: Record<string, string> = {
@@ -73,6 +75,7 @@ const providerGroup: Record<string, string> = {
     [Provider.openstack]: ProviderGroup.Datacenter,
     [Provider.baremetal]: ProviderGroup.Datacenter,
     [Provider.vmware]: ProviderGroup.Datacenter,
+    [Provider.hybrid]: ProviderGroup.CentrallyManaged,
 }
 
 export default function CredentialsFormPage({ match }: RouteComponentProps<{ namespace: string; name: string }>) {
@@ -347,6 +350,10 @@ export function CredentialsForm(props: {
             case Provider.redhatcloud:
                 secret.stringData!.ocmAPIToken = ocmAPIToken
                 break
+            case Provider.hybrid:
+                secret.stringData!.baseDomain = baseDomain
+                secret.stringData!.pullSecret = pullSecret
+                break
         }
         if (secret.stringData?.pullSecret && !secret.stringData.pullSecret.endsWith('\n')) {
             secret.stringData.pullSecret += '\n'
@@ -442,6 +449,19 @@ export function CredentialsForm(props: {
                                         }
                                     }),
                             },
+                            {
+                                group: ProviderGroup.CentrallyManaged,
+                                options: credentialProviders
+                                    .filter((provider) => providerGroup[provider] === ProviderGroup.CentrallyManaged)
+                                    .map((provider) => {
+                                        return {
+                                            id: provider,
+                                            value: provider,
+                                            icon: <AcmIcon icon={ProviderIconMap[provider]} />,
+                                            text: ProviderLongTextMap[provider],
+                                        }
+                                    }),
+                            },
                         ],
                         isDisabled: isEditing,
                     },
@@ -483,6 +503,7 @@ export function CredentialsForm(props: {
                             Provider.gcp,
                             Provider.openstack,
                             Provider.vmware,
+                            Provider.hybrid
                         ].includes(credentialsType as Provider),
                         type: 'Text',
                         label: t('credentialsForm.baseDomain.label'),
@@ -928,6 +949,7 @@ export function CredentialsForm(props: {
                             Provider.gcp,
                             Provider.openstack,
                             Provider.vmware,
+                            Provider.hybrid,
                         ].includes(credentialsType as Provider),
                         type: 'TextArea',
                         label: t('credentialsForm.pullSecret.label'),
