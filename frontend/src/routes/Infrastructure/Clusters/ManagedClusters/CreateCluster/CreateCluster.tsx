@@ -415,7 +415,8 @@ export default function CreateClusterPage() {
                             wizardClassName={classes.wizardBody}
                             type={'cluster'}
                             title={'Cluster YAML'}
-                            monacoEditor={<MonacoEditor options={{ readOnly }}/>}
+                            monacoEditor={<MonacoEditor />}
+                            editorReadOnly={readOnly}
                             controlData={controlData}
                             template={template}
                             portals={Portals}

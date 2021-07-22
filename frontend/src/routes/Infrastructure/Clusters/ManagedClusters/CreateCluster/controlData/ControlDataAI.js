@@ -1,3 +1,4 @@
+/* Copyright Contributors to the Open Cluster Management project */
 import AIForm from '../components/AIForm';
 import NetworkForm from '../components/NetworkForm';
 import { automationControlData } from './ControlDataHelpers';
