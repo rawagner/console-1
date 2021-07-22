@@ -1,3 +1,4 @@
+/* Copyright Contributors to the Open Cluster Management project */
 const conditionsByTypeReducer = (result, condition) => ({ ...result, [condition.type]: condition });
 
 export const getClusterStatus = (
@@ -42,12 +43,12 @@ export const getClusterStatus = (
 };
 
 export const getAgentStatus = (agent) => {
-    const conditions = agent.status.conditions;
+    const conditions = agent.status?.conditions || [];
   
     const conditionsByType =
       conditions.reduce(conditionsByTypeReducer, {});
   
-    const { Installed, Connected, ReadyForInstallation = {}} = conditionsByType;
+    const { Installed = {}, Connected = {}, ReadyForInstallation = {}} = conditionsByType;
   
     if (Installed.status === 'True') return ['installed', Installed.message];
     if (Installed.status === 'False' && Installed.reason === 'InstallationFailed')
@@ -98,7 +99,7 @@ export const getHostNetworks = (
       requestedHostname: agent.spec.hostname,
       // validationsInfo: JSON.stringify(agent.status.hostValidationInfo),
       validationsInfo: JSON.stringify({ hardware: [] }),
-      inventory: JSON.stringify(agent.status.inventory),
+      inventory: JSON.stringify(agent.status?.inventory || {}),
     };
   });
 

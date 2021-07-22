@@ -1,5 +1,6 @@
-import AIForm from '../components/AIForm';
-import NetworkForm from '../components/NetworkForm';
+/* Copyright Contributors to the Open Cluster Management project */
+import DetailsForm from '../components/assisted-installer/DetailsForm';
+import NetworkForm from '../components/assisted-installer/NetworkForm';
 import { automationControlData } from './ControlDataHelpers';
 
 const controlDataAI = [
@@ -15,7 +16,7 @@ const controlDataAI = [
         tooltip: 'tooltip.creation.ocp.cloud.connection',
         id: 'ai',
         type: 'custom',
-        component: <AIForm />,
+        component: <DetailsForm />,
         providerId: 'ai',
     },
     ...automationControlData,

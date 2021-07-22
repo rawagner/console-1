@@ -3,6 +3,7 @@
 import fs from 'fs'
 import path from 'path'
 import Handlebars from 'handlebars'
+import { ServerAltIcon } from '@patternfly/react-icons';
 import installConfigHbs from '../templates/install-config.hbs'
 import aiTemplateHbs from '../templates/assisted-installer/assisted-template.hbs'
 
@@ -33,27 +34,12 @@ export const getActiveCardID = (control, fetchData = {}) => {
     return null
 }
 
-export const getDistributionTitle = (ctrlData, groupData, i18n) => {
-    const activeObject = groupData.find((object) => object.id === 'distribution')
-    const active = activeObject['active']
-    if (active && activeObject['availableMap']) {
-        const title = activeObject['availableMap'][active].title
-        return i18n('creation.ocp.choose.infrastructure', [title])
-    }
-    return ''
-}
-
 export const controlData = [
     ///////////////////////  container platform  /////////////////////////////////////
     {
         id: 'distStep',
         type: 'step',
-        title: 'Infrastructure provider',
-    },
-    {
-        id: 'showSecrets',
-        type: 'hidden',
-        active: false,
+        title: 'Infrastructure',
     },
     {
         id: 'chooseDist',
@@ -61,32 +47,7 @@ export const controlData = [
         info: 'creation.ocp.choose.distribution',
         tooltip: 'tooltip.creation.ocp.choose.distribution',
     },
-    {
-        id: 'distribution',
-        type: 'cards',
-        sort: false,
-        pauseControlCreationHereUntilSelected: false,
-        active: 'OpenShift',
-        available: [
-            {
-                id: 'OpenShift',
-                logo: <RedHatLogo />,
-                title: 'cluster.create.ocp.subtitle',
-            },
-        ],
-        validation: {
-            notification: 'creation.ocp.cluster.must.select.orchestration',
-            required: true,
-        },
-    },
     ///////////////////////  cloud  /////////////////////////////////////
-    {
-        id: 'chooseInfra',
-        type: 'title',
-        info: getDistributionTitle,
-        tooltip: 'tooltip.creation.ocp.choose.aws.infrastructure',
-        learnMore: 'https://docs.openshift.com/container-platform/4.3/installing/',
-    },
     {
         id: 'infrastructure',
         type: 'cards',
@@ -94,16 +55,6 @@ export const controlData = [
         pauseControlCreationHereUntilSelected: true,
         scrollViewAfterSelection: 300,
         available: [
-            {
-                id: 'AI',
-                logo: <AwsLogo />,
-                title: 'cluster.create.ai.subtitle',
-                change: {
-                    insertControlData: controlDataAI,
-                    replacements: {},
-                    replaceTemplate: aiTemplate,
-                },
-            },
             {
                 id: 'AWS',
                 logo: <AwsLogo />,
@@ -114,6 +65,7 @@ export const controlData = [
                         'install-config': { template: installConfig, encode: true, newTab: true },
                     },
                 },
+                section: 'Providers'
             },
             {
                 id: 'GCP',
@@ -125,6 +77,7 @@ export const controlData = [
                         'install-config': { template: installConfig, encode: true, newTab: true },
                     },
                 },
+                section: 'Providers'
             },
             {
                 id: 'Azure',
@@ -136,6 +89,7 @@ export const controlData = [
                         'install-config': { template: installConfig, encode: true, newTab: true },
                     },
                 },
+                section: 'Providers'
             },
             {
                 id: 'vSphere',
@@ -147,6 +101,7 @@ export const controlData = [
                         'install-config': { template: installConfig, encode: true, newTab: true },
                     },
                 },
+                section: 'Providers'
             },
             {
                 id: 'OpenStack',
@@ -158,6 +113,7 @@ export const controlData = [
                         'install-config': { template: installConfig, encode: true, newTab: true },
                     },
                 },
+                section: 'Providers'
             },
             {
                 id: 'BMC',
@@ -169,12 +125,20 @@ export const controlData = [
                         'install-config': { template: installConfig, encode: true, newTab: true },
                     },
                 },
+                section: 'Providers'
+            },
+            {
+                id: 'AI',
+                logo: <ServerAltIcon />,
+                title: 'cluster.create.ai.subtitle',
+                change: {
+                    insertControlData: controlDataAI,
+                    replacements: {},
+                    replaceTemplate: aiTemplate,
+                },
+                section: 'Centrally managed'
             },
         ],
         active: getActiveCardID,
-        validation: {
-            notification: 'creation.ocp.cluster.must.select.infrastructure',
-            required: true,
-        },
     },
 ]
