@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ClusterDeploymentDetailsStep } from 'openshift-assisted-ui-lib';
+import { CIM } from 'openshift-assisted-ui-lib';
 import { listClusterImageSets } from '../../../../../../resources/cluster-image-set';
+
+const { ClusterDeploymentDetailsStep } = CIM;
 
 const imgMap = (clusterImageSet, index) => ({
     label: clusterImageSet.metadata.name,

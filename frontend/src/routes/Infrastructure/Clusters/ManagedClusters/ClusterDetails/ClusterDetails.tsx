@@ -26,6 +26,8 @@ import {
     managedClusterInfosState,
     managedClustersState,
     clusterCuratorsState,
+    agentClusterInstallsState,
+    agentsState,
 } from '../../../../../atoms'
 import { ErrorPage } from '../../../../../components/ErrorPage'
 import { usePrevious } from '../../../../../components/usePrevious'
@@ -48,9 +50,15 @@ export const ClusterContext = createContext<{
     readonly cluster: Cluster | undefined
     readonly clusterCurator?: ClusterCurator
     readonly addons: Addon[] | undefined
+    readonly clusterDeployment: any
+    readonly agents: any
+    readonly agentClusterInstall: any
 }>({
     cluster: undefined,
     addons: undefined,
+    clusterDeployment: undefined,
+    agents: undefined,
+    agentClusterInstall: undefined
 })
 
 export default function ClusterDetailsPage({ match }: RouteComponentProps<{ id: string }>) {
@@ -69,6 +77,8 @@ export default function ClusterDetailsPage({ match }: RouteComponentProps<{ id: 
         clusterManagementAddons,
         clusterClaims,
         clusterCurators,
+        agentClusterInstalls,
+        agents,
     ] = useRecoilValue(
         waitForAll([
             managedClustersState,
@@ -79,6 +89,8 @@ export default function ClusterDetailsPage({ match }: RouteComponentProps<{ id: 
             clusterManagementAddonsState,
             clusterClaimsState,
             clusterCuratorsState,
+            agentClusterInstallsState,
+            agentsState,
         ])
     )
 
@@ -95,6 +107,8 @@ export default function ClusterDetailsPage({ match }: RouteComponentProps<{ id: 
     const clusterClaim = clusterClaims.find((cc) => cc.spec?.namespace === clusterDeployment?.metadata?.name)
 
     const clusterCurator = clusterCurators.find((cc) => cc.metadata.namespace === match.params.id)
+
+    const agentClusterInstall = agentClusterInstalls.find((aci) => aci.metadata.name === match.params.id && aci.metadata.namespace === match.params.id)
 
     const clusterExists = !!managedCluster || !!clusterDeployment || !!managedClusterInfo
 
@@ -147,6 +161,9 @@ export default function ClusterDetailsPage({ match }: RouteComponentProps<{ id: 
                 cluster,
                 clusterCurator,
                 addons,
+                agentClusterInstall,
+                agents,
+                clusterDeployment,
             }}
         >
             <AcmPage

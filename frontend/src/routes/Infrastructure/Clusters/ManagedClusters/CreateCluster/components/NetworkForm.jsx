@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
-import { ClusterDeploymentNetworkingStep } from 'openshift-assisted-ui-lib';
+import { CIM } from 'openshift-assisted-ui-lib';
 import { useRecoilValue, waitForAll } from 'recoil';
 
 import { getAICluster } from './utils';
@@ -8,6 +8,8 @@ import { patchResource } from '../../../../../../lib/resource-request';
 import { agentClusterInstallsState, agentsState, clusterDeploymentsState } from '../../../../../../atoms';
 import { AgentClusterInstallKind } from '../../../../../../resources/agent-cluster-install';
 import { AgentKind } from '../../../../../../resources/agent';
+
+const { ClusterDeploymentNetworkingStep } = CIM;
 
 
 export const useDeepCompareMemoize = (value) => {

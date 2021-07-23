@@ -9,6 +9,7 @@ import {
     AcmButton,
     AcmInlineStatus,
     StatusType,
+    Provider,
 } from '@open-cluster-management/ui-components'
 import { ButtonVariant, PageSection, Popover } from '@patternfly/react-core'
 import { ExternalLinkAltIcon, PencilAltIcon, OutlinedQuestionCircleIcon } from '@patternfly/react-icons'
@@ -32,6 +33,8 @@ import { ClusterStatusMessageAlert } from '../../components/ClusterStatusMessage
 import { ClusterContext } from '../ClusterDetails'
 import { BatchChannelSelectModal } from '../../components/BatchChannelSelectModal'
 import { ProgressStepBar } from '../../components/ProgressStepBar'
+import AIClusterProgress from '../../components/cim/AIClusterProgress'
+import AIClusterDetails from '../../components/cim/AIClusterDetails'
 
 export function ClusterOverviewPageContent(props: { canGetSecret?: boolean }) {
     const { cluster } = useContext(ClusterContext)
@@ -153,6 +156,8 @@ export function ClusterOverviewPageContent(props: { canGetSecret?: boolean }) {
     if (!cluster?.distribution?.ocp?.version) {
         leftItems = leftItems.filter((item) => item.filterKey !== 'channel')
     }
+
+    const isHybrid = cluster?.provider === Provider.hybrid
     return (
         <AcmPageContent id="overview">
             <PageSection>
@@ -171,8 +176,8 @@ export function ClusterOverviewPageContent(props: { canGetSecret?: boolean }) {
                     displayName={cluster!.displayName}
                     close={() => setShowEditLabels(false)}
                 />
-                <ProgressStepBar />
-                <AcmDescriptionList
+                    {isHybrid ? <AIClusterProgress /> : <ProgressStepBar />}
+                    <AcmDescriptionList
                     title={t('table.details')}
                     leftItems={leftItems}
                     rightItems={[
@@ -235,6 +240,7 @@ export function ClusterOverviewPageContent(props: { canGetSecret?: boolean }) {
                         },
                     ]}
                 />
+                {isHybrid && <AIClusterDetails />}
                 {cluster!.isManaged &&
                     [
                         ClusterStatus.ready,

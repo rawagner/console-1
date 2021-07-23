@@ -1,8 +1,11 @@
 /* Copyright Contributors to the Open Cluster Management project */
-const conditionsByTypeReducer = (result, condition) => ({ ...result, [condition.type]: condition });
+import { Cluster } from "openshift-assisted-ui-lib/dist/src/api";
+
+/* Copyright Contributors to the Open Cluster Management project */
+const conditionsByTypeReducer = (result: any, condition: any) => ({ ...result, [condition.type]: condition });
 
 export const getClusterStatus = (
-  agentClusterInstall,
+  agentClusterInstall: any,
 ) => {
   const conditions = agentClusterInstall?.status?.conditions || [];
 
@@ -42,7 +45,7 @@ export const getClusterStatus = (
   return ['insufficient', 'Unexpected AgentClusterInstall conditions.'];
 };
 
-export const getAgentStatus = (agent) => {
+export const getAgentStatus = (agent: any) => {
     const conditions = agent.status?.conditions || [];
   
     const conditionsByType =
@@ -68,12 +71,12 @@ export const getAgentStatus = (agent) => {
   };
 
 export const getHostNetworks = (
-    agents = [],
+    agents: any = [],
   ) => {
-    const cidrs = {};
-    agents.forEach((agent) => {
-      agent.status?.inventory?.interfaces?.forEach((interf) => {
-        interf.ipV4Addresses?.forEach((addr) => {
+    const cidrs: any = {};
+    agents.forEach((agent: any) => {
+      agent.status?.inventory?.interfaces?.forEach((interf: any) => {
+        interf.ipV4Addresses?.forEach((addr: any) => {
           cidrs[addr] = cidrs[addr] || [];
           cidrs[addr].push(agent.metadata.uid);
         });
@@ -86,8 +89,8 @@ export const getHostNetworks = (
     }));
   };
 
-  export const getAIHosts = (agents = []) =>
-  agents.map((agent) => {
+  export const getAIHosts = (agents: any = []) =>
+  agents.map((agent: any) => {
     const [status, statusInfo] = getAgentStatus(agent);
     return {
       kind: 'Host',
@@ -108,10 +111,15 @@ export const getAICluster = ({
     agentClusterInstall,
     agents = [],
     pullSecretSet = false,
-  }) => {
+  }: {
+    clusterDeployment: any;
+    agentClusterInstall: any;
+    agents: any;
+    pullSecretSet?: any;
+  }): Cluster => {
     const [status, statusInfo] = getClusterStatus(agentClusterInstall);
     console.log('---- getAICluster, clusterDeployment: ', clusterDeployment);
-    const aiCluster = {
+    const aiCluster: Cluster = {
       id: clusterDeployment.metadata?.uid || '',
       kind: 'Cluster',
       href: '',

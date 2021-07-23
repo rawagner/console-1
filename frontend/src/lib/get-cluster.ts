@@ -12,6 +12,7 @@ import { ManagedClusterInfo, NodeInfo, OpenShiftDistributionInfo } from '../reso
 import { managedClusterSetLabel } from '../resources/managed-cluster-set'
 import { AddonStatus } from './get-addons'
 import { getLatest } from './utils'
+import { AgentClusterInstallKind } from '../resources/agent-cluster-install'
 
 export enum ClusterStatus {
     'pending' = 'pending',
@@ -282,6 +283,11 @@ export function getProvider(
     managedCluster?: ManagedCluster,
     clusterDeployment?: ClusterDeployment
 ) {
+    const clusterInstallRef = clusterDeployment?.spec?.clusterInstallRef
+    if (clusterInstallRef?.kind === AgentClusterInstallKind) {
+        return Provider.hybrid
+    }
+
     const cloudLabel = managedClusterInfo?.metadata?.labels?.['cloud']
     const platformClusterClaim = managedCluster?.status?.clusterClaims?.find(
         (claim) => claim.name === 'platform.open-cluster-management.io'
