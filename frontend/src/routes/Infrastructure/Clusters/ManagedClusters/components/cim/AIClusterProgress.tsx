@@ -6,6 +6,7 @@ import { useContext } from 'react'
 import isMatch from 'lodash/isMatch'
 import { ClusterContext } from '../../ClusterDetails/ClusterDetails'
 import ClusterDeploymentCredentials from './CusterDeploymentCredentials'
+import { backendUrl, fetchGet } from '@open-cluster-management/resources'
 
 const { ClusterProgress, getAICluster, getClusterStatus, ClusterInstallationError, AgentTable } = CIM
 
@@ -38,7 +39,15 @@ const AIClusterProgress: React.FC = () => {
                         {!!clusterDeployment && !!agentClusterInstall && (
                             <Stack hasGutter>
                                 <StackItem>
-                                    <ClusterProgress cluster={cluster} onFetchEvents={async () => {} }/>
+                                    <ClusterProgress
+                                        clusterDeployment={clusterDeployment}
+                                        agentClusterInstall={agentClusterInstall}
+                                        agents={infraAgents}
+                                        fetchEvents={async (url: string) => {
+                                            const abortController = new AbortController()
+                                            const result = await fetchGet(`${backendUrl}${url}`, abortController.signal)
+                                            return result.data
+                                        }}/>
                                 </StackItem>
                                 {installedStates.includes(clusterStatus) && (
                                     <StackItem>
@@ -64,7 +73,8 @@ const AIClusterProgress: React.FC = () => {
                                                 : undefined
                                             }
                                             statusInfo={clusterStatusInfo}
-                                            logsUrl={agentClusterInstall.status?.debugInfo?.logsURL}
+                                            backendURL={backendUrl}
+                                            agentClusterInstall={agentClusterInstall}
                                             openshiftVersion={clusterDeployment.status?.installVersion}
                                         />
                                     </StackItem>
