@@ -41,7 +41,7 @@ const DetailsForm: React.FC<DetailsFormProps> = ({ control, handleChange, contro
             onValuesChanged={onValuesChanged}
             clusterImages={clusterImages}
             usedClusterNames={[]}
-            defaultPullSecret={controlProps?.stringData?.pullSecret}
+            pullSecret={controlProps?.stringData?.pullSecret}
             defaultBaseDomain={controlProps?.stringData?.baseDomain}
         />
     )

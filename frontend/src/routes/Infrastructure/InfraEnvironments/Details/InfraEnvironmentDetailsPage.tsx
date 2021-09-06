@@ -8,20 +8,21 @@ import {
     AcmSecondaryNav,
     AcmSecondaryNavItem,
 } from '@open-cluster-management/ui-components'
+import isEqual from 'lodash/isEqual';
 import { Page } from '@patternfly/react-core'
 import { Fragment, Suspense, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Redirect, Route, RouteComponentProps, Switch, useHistory, useLocation } from 'react-router-dom'
 import { useRecoilState, useRecoilValue, waitForAll } from 'recoil'
 import { CIM } from 'openshift-assisted-ui-lib'
-import { ResourceError } from '@open-cluster-management/resources'
+import { ResourceError, createResource, patchResource } from '@open-cluster-management/resources'
 import { acmRouteState, infraEnvironmentsState } from '../../../../atoms'
 import { ErrorPage } from '../../../../components/ErrorPage'
 import { NavigationPath } from '../../../../NavigationPath'
 import DetailsTab from './DetailsTab'
 import HostsTab from './HostsTab'
 
-const { DownloadIsoModal } = CIM
+const { AddHostModal, getBareMetalHostCredentialsSecret, getBareMetalHost } = CIM
 
 type InfraEnvironmentDetailsPageProps = RouteComponentProps<{ namespace: string; name: string }>
 
@@ -123,10 +124,32 @@ const InfraEnvironmentDetailsPage: React.FC<InfraEnvironmentDetailsPageProps> = 
                     </Switch>
                 </Suspense>
             </AcmPage>
-            <DownloadIsoModal
+            <AddHostModal
+                infraEnv={infraEnv}
                 isOpen={isoModalOpen}
                 onClose={() => setISOModalOpen(false)}
-                downloadUrl={infraEnv?.status?.isoDownloadURL}
+                onCreate={async (values: CIM.AddBmcValues, nmState: CIM.InfraEnvK8sResource) => {
+                    const secret = getBareMetalHostCredentialsSecret(values, infraEnv.metadata.namespace)
+                    const secretRes = await createResource<any>(secret).promise
+                    if (nmState) {
+                        await createResource<any>(nmState).promise
+                        const matchLabels = { infraEnv: infraEnv.metadata.name };
+                        if (!isEqual(infraEnv.spec.nmStateConfigLabelSelector?.matchLabels, matchLabels)) {
+                            const op = Object.prototype.hasOwnProperty.call(infraEnv.spec, 'nmStateConfigLabelSelector') ? 'replace' : 'add';
+                            await patchResource(infraEnv, [
+                                {
+                                    op: op,
+                                    path: `/spec/nmStateConfigLabelSelector`,
+                                    value: {
+                                        matchLabels,
+                                    },
+                                },
+                            ]).promise
+                        }
+                    }
+                    const bmh = getBareMetalHost(values, infraEnv.metadata.namespace, secretRes.metadata.name)
+                    return createResource(bmh).promise
+                }}
             />
         </>
     )

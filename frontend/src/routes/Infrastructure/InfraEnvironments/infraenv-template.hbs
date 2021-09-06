@@ -1,20 +1,21 @@
 apiVersion: agent-install.openshift.io/v1beta1
 kind: InfraEnv
 metadata:
-  name:{{{ai.name}}}
-  namespace:{{{ai.name}}}
+  name: {{{ai.name}}}
+  namespace: {{{ai.name}}}
   labels:
-    'assisted-install-location':{{{ai.location}}}
+    'assisted-install-location': {{{ai.location}}}
+    networkType: {{{ai.networkType}}}
 spec:
   agentLabels:
   {{#each ai.labels}}
     {{@key}}: {{this}}
   {{/each}}
   clusterRef:
-    name:{{{ai.name}}}
-    namespace:{{{ai.name}}}
+    name: {{{ai.name}}}
+    namespace: {{{ai.name}}}
   pullSecretRef:
-    name:{{{ai.name}}}
+    name: pullsecret-{{{ai.name}}}
   sshAuthorizedKey: {{{ai.sshPublicKey}}}
 status:
   agentLabelSelector:
@@ -30,7 +31,7 @@ metadata:
   name: {{{ai.name}}}
   namespace: {{{ai.name}}}
 spec:
-  baseDomain:  {{{ai.baseDomain}}}
+  baseDomain: {{{ai.baseDomain}}}
   clusterInstallRef:
     group: extensions.hive.openshift.io
     kind: AgentClusterInstall
@@ -41,10 +42,7 @@ spec:
     agentBareMetal:
       agentSelector:
         matchLabels:
-        {{#each ai.labels}}
-          {{@key}}:
-          {{this}}
-        {{/each}}
+          agentclusterinstalls.extensions.hive.openshift.io/cluster-reserved: cluster-deployment-{{{ai.name}}}-{{{ai.name}}}
   pullSecretRef:
     name: pullsecret-{{{ai.name}}}
 
@@ -60,13 +58,13 @@ spec:
   networking:
     clusterNetwork:
      - cidr: '10.128.0.0/14'
-      hostPrefix: 23
-      serviceNetwork:
-      - '172.30.0.0/16'
+       hostPrefix: 23
+       serviceNetwork:
+       - '172.30.0.0/16'
   provisionRequirements:
     controlPlaneAgents: 3
-    imageSetRef:
-      name: openshift-v4.8.0
+  imageSetRef:
+    name: openshift-v4.8.0
 
 ---
 kind: Secret
@@ -75,8 +73,8 @@ metadata:
   name: pullsecret-{{{ai.name}}}
   namespace: {{{ai.name}}}
 data:
-  '.dockerconfigjson': {{{ai.pullSecret}}}
-type: kubernetes.io/dockerconfigjson
+  '.dockerconfigjson': '{{{ai.pullSecret}}}'
+type: 'kubernetes.io/dockerconfigjson'
 
 ---
 apiVersion: cluster.open-cluster-management.io/v1
@@ -92,7 +90,7 @@ metadata:
 spec:
   hubAcceptsClient: true
   
---- 
+---
 apiVersion: agent.open-cluster-management.io/v1
 kind: KlusterletAddonConfig
 metadata:
@@ -103,13 +101,13 @@ spec:
   clusterNamespace: {{{ai.name}}}
   clusterLabels:
     cloud: Hybrid
-    applicationManager:
-      enabled: true
-    policyController:
-      enabled: true
-    searchCollector:
-      enabled: true
-    certPolicyController:
-      enabled: true
-    iamPolicyController:
-      enabled: true
+  applicationManager:
+    enabled: true
+  policyController:
+    enabled: true
+  searchCollector:
+    enabled: true
+  certPolicyController:
+    enabled: true
+  iamPolicyController:
+    enabled: true

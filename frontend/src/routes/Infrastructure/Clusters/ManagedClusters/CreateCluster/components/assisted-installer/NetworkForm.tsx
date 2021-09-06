@@ -57,11 +57,12 @@ const NetworkForm: React.FC<NetworkFormProps> = ({ control, handleCreateResource
                 onValuesChanged={onValuesChanged}
                 clusterDeployment={clusterDeployment}
                 agentClusterInstall={agentClusterInstall}
-                pullSecretSet // TODO
                 agents={agents}
-                onEditHost={(host) => {
-                    const agent = agents.find(({ metadata }) => metadata.uid === host.id)
-                    setEditAgent(agent)
+                hostActions={{
+                    onEditHost: (host) => {
+                        const agent = agents.find(({ metadata }) => metadata.uid === host.id)
+                        setEditAgent(agent)
+                    }
                 }}
             />
             <EditAgentModal

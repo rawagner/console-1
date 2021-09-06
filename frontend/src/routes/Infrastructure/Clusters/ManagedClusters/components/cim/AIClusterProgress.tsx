@@ -39,7 +39,7 @@ const AIClusterProgress: React.FC = () => {
                         {!!clusterDeployment && !!agentClusterInstall && (
                             <Stack hasGutter>
                                 <StackItem>
-                                    <ClusterProgress cluster={cluster} onFetchEvents={async () => {}} />
+                                    <ClusterProgress cluster={cluster} onFetchEvents={async () => {}} totalPercentage={/*TODO*/ 0} />
                                 </StackItem>
                                 {installedStates.includes(clusterStatus) && (
                                     <StackItem>

@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { CIM } from 'openshift-assisted-ui-lib'
 import { RouteComponentProps, useHistory } from 'react-router'
 import { useRecoilValue, waitForAll } from 'recoil'
-import isMatch from 'lodash/isMatch'
 import { patchResource } from '@open-cluster-management/resources'
 import {
     agentClusterInstallsState,
@@ -14,7 +13,7 @@ import {
 } from '../../../../../../atoms'
 import { getNetworkingPatches } from './utils'
 
-const { ClusterDeploymentWizard, EditAgentModal } = CIM
+const { ClusterDeploymentWizard, EditAgentModal, RESERVED_AGENT_LABEL_KEY, getClusterDeploymentAgentReservedValue, getAnnotationsFromAgentSelector } = CIM
 
 type EditAIClusterProps = RouteComponentProps<{ namespace: string; name: string }>
 
@@ -25,7 +24,7 @@ const EditAICluster: React.FC<EditAIClusterProps> = ({
 }) => {
     const history = useHistory()
     const [editAgent, setEditAgent] = useState<CIM.AgentK8sResource | undefined>()
-    const [clusterImageSets, clusterDeployments, agentClusterInstalls, agents, infraEnvs] = useRecoilValue(
+    const [clusterImageSets, clusterDeployments, agentClusterInstalls, agents] = useRecoilValue(
         waitForAll([
             clusterImageSetsState,
             clusterDeploymentsState,
@@ -41,12 +40,6 @@ const EditAICluster: React.FC<EditAIClusterProps> = ({
     const agentClusterInstall = agentClusterInstalls.find(
         (aci) => aci.metadata.name === name && aci.metadata.namespace === namespace
     )
-    const infraEnv = infraEnvs.find((ie) => ie.metadata.name === name && ie.metadata.namespace === namespace)
-
-    const infraAgents =
-        infraEnv && agents.filter((a) => isMatch(a.metadata.labels, infraEnv.status?.agentLabelSelector?.matchLabels))
-
-    const defaultPullSecret = '' // Can be retrieved from c.rh.c . We can not query that here.
 
     const onSaveDetails = (values: any) => {
         return patchResource(agentClusterInstall, [
@@ -62,12 +55,10 @@ const EditAICluster: React.FC<EditAIClusterProps> = ({
         <>
             <ClusterDeploymentWizard
                 className="cluster-deployment-wizard"
-                defaultPullSecret={defaultPullSecret}
                 clusterImages={clusterImageSets}
                 clusterDeployment={clusterDeployment}
                 agentClusterInstall={agentClusterInstall}
-                agents={infraAgents}
-                pullSecretSet
+                agents={agents}
                 usedClusterNames={[]}
                 onClose={history.goBack}
                 onSaveDetails={onSaveDetails}
@@ -81,26 +72,87 @@ const EditAICluster: React.FC<EditAIClusterProps> = ({
                         throw Error(`Failed to patch the AgentClusterInstall resource: ${e.message}`)
                     }
                 }}
-                canEditHost={() => true}
-                onEditHost={(agent) => {
-                    setEditAgent(agent)
+                hostActions={{
+                    canEditHost: () => true,
+                    onEditHost: (agent) => {
+                        setEditAgent(agent)
+                    },
+                    canEditRole: () => true,
+                    onEditRole: (agent, role) => {
+                        return patchResource(agent, [
+                            {
+                                op: 'replace',
+                                path: '/spec/role',
+                                value: role,
+                            },
+                        ]).promise
+                    },
                 }}
-                canEditRole={() => true}
-                onEditRole={(agent, role) => {
-                    patchResource(agent, [
-                        {
-                            op: 'replace',
-                            path: '/spec/approved',
-                            value: true,
-                        },
-                    ])
-                    return patchResource(agent, [
-                        {
-                            op: 'replace',
-                            path: '/spec/role',
-                            value: role,
-                        },
-                    ]).promise
+                onSaveHostsSelection={async (values) => {
+                    const reservedAgentlabelValue = getClusterDeploymentAgentReservedValue(
+                        clusterDeployment?.metadata?.namespace || '',
+                        clusterDeployment?.metadata?.name || '',
+                    )
+                    const hostIds = values.autoSelectHosts ? values.autoSelectedHostIds : values.selectedHostIds;
+                    const releasedAgents = agents.filter((a) =>
+                        !(hostIds.includes(a.metadata.uid)) && (Object.hasOwnProperty.call(a.metadata.labels || {}, RESERVED_AGENT_LABEL_KEY) ? a.metadata.labels[RESERVED_AGENT_LABEL_KEY] === reservedAgentlabelValue : false)
+                    )
+
+                    // remove RESERVED_AGENT_LABEL_KEY label from releasedAgents
+                    await Promise.all(
+                        releasedAgents.map((agent) => {
+                          const newLabels = { ...agent.metadata.labels };
+                          delete newLabels[RESERVED_AGENT_LABEL_KEY];
+                          return patchResource(agent, [
+                            {
+                              op: 'replace',
+                              path: `/metadata/labels`,
+                              value: newLabels,
+                            },
+                            {
+                              op: 'replace',
+                              path: '/spec/clusterDeploymentName',
+                              value: {}, // means: delete
+                            },
+                          ]).promise;
+                        }),
+                      );
+
+                    const addAgents = agents.filter((a) =>
+                        hostIds.includes(a.metadata.uid) && !Object.hasOwnProperty.call(a.metadata.labels, RESERVED_AGENT_LABEL_KEY)
+                    )
+                    await Promise.all(
+                        addAgents
+                          .map((agent) => {
+                            const newLabels = {...(agent.metadata.labels || {})};
+                            newLabels[RESERVED_AGENT_LABEL_KEY] = reservedAgentlabelValue;
+                            return patchResource(agent, [
+                              {
+                                op: agent.metadata.labels ? 'replace' : 'add',
+                                path: '/metadata/labels',
+                                value: newLabels,
+                              },
+                              {
+                                op: agent.spec?.clusterDeploymentName ? 'replace' : 'add',
+                                path: '/spec/clusterDeploymentName',
+                                value: {
+                                  name: clusterDeployment?.metadata?.name || '',
+                                  namespace: clusterDeployment?.metadata?.namespace || '',
+                                },
+                              },
+                            ]).promise
+                          })
+                    );
+
+                    if (clusterDeployment) {
+                        await patchResource(clusterDeployment, [
+                            {
+                                op: clusterDeployment.metadata.annotations ? 'replace' : 'add',
+                                path: '/metadata/annotations',
+                                value: getAnnotationsFromAgentSelector(clusterDeployment, values),
+                            },
+                        ]).promise;
+                    }
                 }}
             />
             <EditAgentModal
