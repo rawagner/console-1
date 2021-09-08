@@ -5,23 +5,32 @@ import { CIM } from 'openshift-assisted-ui-lib'
 import { useContext } from 'react'
 import isMatch from 'lodash/isMatch'
 import { ClusterContext } from '../../ClusterDetails/ClusterDetails'
-import ClusterDeploymentCredentials from './CusterDeploymentCredentials'
+import { EventListFetchProps, FetchSecret } from 'openshift-assisted-ui-lib/dist/src/cim'
+import { getResource, Secret, SecretApiVersion, SecretKind } from '@open-cluster-management/resources'
 
-const { ClusterProgress, getAICluster, getClusterStatus, ClusterInstallationError, AgentTable } = CIM
+const {
+    ClusterDeploymentProgress,
+    getClusterStatus,
+    ClusterInstallationError,
+    AgentTable,
+    shouldShowClusterInstallationProgress,
+    shouldShowClusterCredentials,
+    shouldShowClusterInstallationError,
+    getConsoleUrl,
+    ClusterDeploymentCredentials,
+    ClusterDeploymentKubeconfigDownload,
+    formatEventsData,
+} = CIM
 
-const progressStates = [
-    'preparing-for-installation',
-    'installing',
-    'installing-pending-user-action',
-    'finalizing',
-    'installed',
-    'error',
-    'cancelled',
-    'adding-hosts',
-]
-
-const installedStates = ['installed', 'adding-hosts']
-const errorStates = ['error', 'cancelled']
+const fetchSecret: FetchSecret = (name, namespace) =>
+    getResource<Secret>({
+        apiVersion: SecretApiVersion,
+        kind: SecretKind,
+        metadata: {
+            name,
+            namespace,
+        },
+    }).promise
 
 const AIClusterProgress: React.FC = () => {
     const { clusterDeployment, agentClusterInstall, agents, infraEnv } = useContext(ClusterContext)
@@ -29,34 +38,58 @@ const AIClusterProgress: React.FC = () => {
         infraEnv && agents
             ? agents.filter((a) => isMatch(a.metadata.labels, infraEnv.status?.agentLabelSelector?.matchLabels))
             : []
-    const cluster = getAICluster({ clusterDeployment, agentClusterInstall, agents: infraAgents })
+
+    // TODO(jtomasek): Figure out how to use this from ai-ui-lib (currently in ClusterDeploymentDetails which is not used by ACM)
+    const handleFetchEvents: EventListFetchProps['onFetchEvents'] = async (_, onSuccess, onError) => {
+        try {
+            const eventsURL = agentClusterInstall.status?.debugInfo?.eventsURL
+            if (!eventsURL) throw new Error('Events URL is not available.')
+
+            const res = await fetch(eventsURL)
+            const rawData: Record<string, string>[] = await res.json()
+            const data = formatEventsData(rawData)
+
+            onSuccess(data)
+        } catch (e) {
+            onError('Failed to fetch cluster events.')
+        }
+    }
+
     const [clusterStatus, clusterStatusInfo] = getClusterStatus(agentClusterInstall)
     return (
         <>
-            {progressStates.includes(clusterStatus) && (
+            {shouldShowClusterInstallationProgress(agentClusterInstall) && (
                 <div style={{ marginBottom: '24px' }}>
                     <AcmExpandableCard title="Cluster installation progress" id="aiprogress">
                         {!!clusterDeployment && !!agentClusterInstall && (
                             <Stack hasGutter>
                                 <StackItem>
-                                    <ClusterProgress cluster={cluster} onFetchEvents={async () => {}} totalPercentage={/*TODO*/ 0} />
+                                    <ClusterDeploymentProgress
+                                        clusterDeployment={clusterDeployment}
+                                        agentClusterInstall={agentClusterInstall}
+                                        agents={infraAgents}
+                                        onFetchEvents={handleFetchEvents}
+                                    />
                                 </StackItem>
-                                {installedStates.includes(clusterStatus) && (
+                                {shouldShowClusterCredentials(agentClusterInstall) && (
                                     <StackItem>
                                         <ClusterDeploymentCredentials
-                                            cluster={cluster}
-                                            namespace={clusterDeployment.metadata.namespace as string}
-                                            adminPasswordSecretRefName={
-                                                agentClusterInstall.spec?.clusterMetadata?.adminPasswordSecretRef.name
-                                            }
-                                            consoleUrl={
-                                                clusterDeployment.status?.webConsoleURL ||
-                                                `https://console-openshift-console.apps.${cluster.name}.${cluster.baseDnsDomain}`
-                                            }
+                                            clusterDeployment={clusterDeployment}
+                                            agentClusterInstall={agentClusterInstall}
+                                            agents={infraAgents}
+                                            fetchSecret={fetchSecret}
+                                            consoleUrl={getConsoleUrl(clusterDeployment)}
                                         />
                                     </StackItem>
                                 )}
-                                {errorStates.includes(clusterStatus) && (
+                                <StackItem>
+                                    <ClusterDeploymentKubeconfigDownload
+                                        clusterDeployment={clusterDeployment}
+                                        agentClusterInstall={agentClusterInstall}
+                                        fetchSecret={fetchSecret}
+                                    />
+                                </StackItem>
+                                {shouldShowClusterInstallationError(agentClusterInstall) && (
                                     <StackItem>
                                         <ClusterInstallationError
                                             title={
