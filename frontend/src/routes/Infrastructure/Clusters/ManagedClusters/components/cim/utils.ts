@@ -2,7 +2,7 @@
 import isEqual from 'lodash/isEqual'
 import { CIM } from 'openshift-assisted-ui-lib'
 
-const appendPatch = (patches: any, path: string, newVal: object | string, existingVal?: object | string) => {
+const appendPatch = (patches: any, path: string, newVal: object | string | boolean, existingVal?: object | string) => {
     if (!isEqual(newVal, existingVal)) {
         patches.push({
             op: existingVal ? 'replace' : 'add',
@@ -56,6 +56,7 @@ export const getNetworkingPatches = (agentClusterInstall: CIM.AgentClusterInstal
     appendPatch(agentClusterInstallPatches, '/spec/apiVIP', values.apiVip, agentClusterInstall.spec?.apiVIP)
 
     appendPatch(agentClusterInstallPatches, '/spec/ingressVIP', values.ingressVip, agentClusterInstall.spec?.ingressVIP)
+    appendPatch(agentClusterInstallPatches, '/spec/holdInstallation', false, agentClusterInstall.spec?.holdInstallation)
 
     return agentClusterInstallPatches
 }
