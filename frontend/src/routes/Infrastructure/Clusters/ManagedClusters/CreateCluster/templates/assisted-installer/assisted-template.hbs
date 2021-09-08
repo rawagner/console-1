@@ -1,3 +1,4 @@
+---
 apiVersion: hive.openshift.io/v1
 kind: ClusterDeployment
 metadata:
@@ -14,9 +15,10 @@ spec:
   platform:
     agentBareMetal:
       agentSelector:
-        matchLabels: {}
-    pullSecretRef:
-      name: pullsecret-{{{ai.name}}}
+        matchLabels:
+          agentclusterinstalls.extensions.hive.openshift.io/cluster: cluster-deployment-{{{ai.name}}}-{{{ai.name}}}
+  pullSecretRef:
+    name: pullsecret-cluster-{{{ai.name}}}
 
 ---
 apiVersion: extensions.hive.openshift.io/v1beta1
@@ -27,19 +29,18 @@ metadata:
 spec:
   clusterDeploymentRef:
     name: {{{ai.name}}}
-  apiVIP: {{{aiNetwork.apiVip}}}
-  ingressVIP: {{{aiNetwork.ingressVip}}}
-  networking: {}
+  holdInstallation: true
   provisionRequirements:
     controlPlaneAgents: 0
-    imageSetRef:
-      name: {{{ai.openshiftVersion}}}
+  imageSetRef:
+    name: {{{ai.openshiftVersion}}}
+  networking: {}
 
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: pullsecret-{{{ai.name}}}
+  name: pullsecret-cluster-{{{ai.name}}}
   namespace: {{{ai.name}}}
 data:
   '.dockerconfigjson': {{{ai.pullSecret}}}
@@ -80,3 +81,5 @@ spec:
     enabled: true
   iamPolicyController:
     enabled: true
+
+---
