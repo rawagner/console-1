@@ -13,7 +13,11 @@ import {
 } from '../../../../../../atoms'
 import { getNetworkingPatches } from './utils'
 
-const { ClusterDeploymentWizard, EditAgentModal, RESERVED_AGENT_LABEL_KEY, getClusterDeploymentAgentReservedValue, getAnnotationsFromAgentSelector } = CIM
+const {
+    ClusterDeploymentWizard,
+    EditAgentModal,
+    getAnnotationsFromAgentSelector,
+} = CIM
 
 type EditAIClusterProps = RouteComponentProps<{ namespace: string; name: string }>
 
@@ -51,6 +55,86 @@ const EditAICluster: React.FC<EditAIClusterProps> = ({
         ]).promise
     }
 
+    const onSaveHostsSelection = async (values: CIM.ClusterDeploymentHostsSelectionValues) => {
+        const hostIds = values.autoSelectHosts ? values.autoSelectedHostIds : values.selectedHostIds
+        const releasedAgents = agents.filter(
+            (a) =>
+                !hostIds.includes(a.metadata.uid) &&
+                a.spec?.clusterDeploymentName?.name === name &&
+                a.spec?.clusterDeploymentName?.namespace === namespace
+        )
+
+        await Promise.all(
+            releasedAgents.map((agent) => {
+                return patchResource(agent, [
+                    {
+                        op: 'replace',
+                        path: '/spec/clusterDeploymentName',
+                        value: {}, // means: delete; requires https://issues.redhat.com/browse/MGMT-7726
+                    },
+                ]).promise
+            })
+        )
+
+        const addAgents = agents.filter(
+            (a) =>
+                hostIds.includes(a.metadata.uid) &&
+                (a.spec?.clusterDeploymentName?.name !== name || a.spec?.clusterDeploymentName?.namespace !== namespace)
+        )
+        await Promise.all(
+            addAgents.map((agent) => {
+                return patchResource(agent, [
+                    {
+                        op: agent.spec?.clusterDeploymentName ? 'replace' : 'add',
+                        path: '/spec/clusterDeploymentName',
+                        value: {
+                            name,
+                            namespace,
+                        },
+                    },
+                ]).promise
+            })
+        )
+
+        if (clusterDeployment) {
+            await patchResource(clusterDeployment, [
+                {
+                    op: clusterDeployment.metadata.annotations ? 'replace' : 'add',
+                    path: '/metadata/annotations',
+                    value: getAnnotationsFromAgentSelector(clusterDeployment, values),
+                },
+            ]).promise
+        }
+    }
+
+    const onSaveNetworking = async (values: CIM.ClusterDeploymentNetworkingValues) => {
+        try {
+            const patches = getNetworkingPatches(agentClusterInstall, values)
+            if (patches.length > 0) {
+                await patchResource(agentClusterInstall, patches).promise
+            }
+        } catch (e) {
+            throw Error(`Failed to patch the AgentClusterInstall resource: ${e.message}`)
+        }
+    }
+
+    const hostActions = {
+        canEditHost: () => true,
+        onEditHost: (agent: CIM.AgentK8sResource) => {
+            setEditAgent(agent)
+        },
+        canEditRole: () => true,
+        onEditRole: (agent: CIM.AgentK8sResource, role: string | undefined) => {
+            return patchResource(agent, [
+                {
+                    op: 'replace',
+                    path: '/spec/role',
+                    value: role,
+                },
+            ]).promise
+        },
+    }
+
     return (
         <>
             <ClusterDeploymentWizard
@@ -59,101 +143,12 @@ const EditAICluster: React.FC<EditAIClusterProps> = ({
                 clusterDeployment={clusterDeployment}
                 agentClusterInstall={agentClusterInstall}
                 agents={agents}
-                usedClusterNames={[]}
+                usedClusterNames={[/* Not needed for the Edit flow */]}
                 onClose={history.goBack}
                 onSaveDetails={onSaveDetails}
-                onSaveNetworking={async (values) => {
-                    try {
-                        const patches = getNetworkingPatches(agentClusterInstall, values)
-                        if (patches.length > 0) {
-                            await patchResource(agentClusterInstall, patches).promise
-                        }
-                    } catch (e) {
-                        throw Error(`Failed to patch the AgentClusterInstall resource: ${e.message}`)
-                    }
-                }}
-                hostActions={{
-                    canEditHost: () => true,
-                    onEditHost: (agent) => {
-                        setEditAgent(agent)
-                    },
-                    canEditRole: () => true,
-                    onEditRole: (agent, role) => {
-                        return patchResource(agent, [
-                            {
-                                op: 'replace',
-                                path: '/spec/role',
-                                value: role,
-                            },
-                        ]).promise
-                    },
-                }}
-                onSaveHostsSelection={async (values) => {
-                    const reservedAgentlabelValue = getClusterDeploymentAgentReservedValue(
-                        clusterDeployment?.metadata?.namespace || '',
-                        clusterDeployment?.metadata?.name || '',
-                    )
-                    const hostIds = values.autoSelectHosts ? values.autoSelectedHostIds : values.selectedHostIds;
-                    const releasedAgents = agents.filter((a) =>
-                        !(hostIds.includes(a.metadata.uid)) && (Object.hasOwnProperty.call(a.metadata.labels || {}, RESERVED_AGENT_LABEL_KEY) ? a.metadata.labels[RESERVED_AGENT_LABEL_KEY] === reservedAgentlabelValue : false)
-                    )
-
-                    // remove RESERVED_AGENT_LABEL_KEY label from releasedAgents
-                    await Promise.all(
-                        releasedAgents.map((agent) => {
-                          const newLabels = { ...agent.metadata.labels };
-                          delete newLabels[RESERVED_AGENT_LABEL_KEY];
-                          return patchResource(agent, [
-                            {
-                              op: 'replace',
-                              path: `/metadata/labels`,
-                              value: newLabels,
-                            },
-                            {
-                              op: 'replace',
-                              path: '/spec/clusterDeploymentName',
-                              value: {}, // means: delete
-                            },
-                          ]).promise;
-                        }),
-                      );
-
-                    const addAgents = agents.filter((a) =>
-                        hostIds.includes(a.metadata.uid) && !Object.hasOwnProperty.call(a.metadata.labels, RESERVED_AGENT_LABEL_KEY)
-                    )
-                    await Promise.all(
-                        addAgents
-                          .map((agent) => {
-                            const newLabels = {...(agent.metadata.labels || {})};
-                            newLabels[RESERVED_AGENT_LABEL_KEY] = reservedAgentlabelValue;
-                            return patchResource(agent, [
-                              {
-                                op: agent.metadata.labels ? 'replace' : 'add',
-                                path: '/metadata/labels',
-                                value: newLabels,
-                              },
-                              {
-                                op: agent.spec?.clusterDeploymentName ? 'replace' : 'add',
-                                path: '/spec/clusterDeploymentName',
-                                value: {
-                                  name: clusterDeployment?.metadata?.name || '',
-                                  namespace: clusterDeployment?.metadata?.namespace || '',
-                                },
-                              },
-                            ]).promise
-                          })
-                    );
-
-                    if (clusterDeployment) {
-                        await patchResource(clusterDeployment, [
-                            {
-                                op: clusterDeployment.metadata.annotations ? 'replace' : 'add',
-                                path: '/metadata/annotations',
-                                value: getAnnotationsFromAgentSelector(clusterDeployment, values),
-                            },
-                        ]).promise;
-                    }
-                }}
+                onSaveNetworking={onSaveNetworking}
+                onSaveHostsSelection={onSaveHostsSelection}
+                hostActions={hostActions}
             />
             <EditAgentModal
                 isOpen={!!editAgent}
