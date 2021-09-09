@@ -74,7 +74,13 @@ const NetworkForm: React.FC<NetworkFormProps> = ({ control, handleChange }) => {
             control.step.title.isComplete = false
             handleChange(control)
         }
+    // eslint-disable-next-line
     }, [])
+
+    const matchingAgents = agents.filter((a) =>
+        a.spec?.clusterDeploymentName?.name === clusterDeployment.metadata.name &&
+        a.spec?.clusterDeploymentName?.namespace === clusterDeployment.metadata.namespace
+    )
 
     return (
         <>
@@ -83,7 +89,7 @@ const NetworkForm: React.FC<NetworkFormProps> = ({ control, handleChange }) => {
                 onValuesChanged={onValuesChanged}
                 clusterDeployment={clusterDeployment}
                 agentClusterInstall={agentClusterInstall}
-                agents={agents}
+                agents={matchingAgents}
                 hostActions={{
                     onEditHost: (host) => {
                         const agent = agents.find(({ metadata }) => metadata.uid === host.id)

@@ -11,12 +11,11 @@ import {
     clusterImageSetsState,
     infraEnvironmentsState,
 } from '../../../../../../atoms'
-import { getNetworkingPatches } from './utils'
+import { onHostsNext, onSaveNetworking } from '../../CreateCluster/components/assisted-installer/utils'
 
 const {
     ClusterDeploymentWizard,
     EditAgentModal,
-    getAnnotationsFromAgentSelector,
 } = CIM
 
 type EditAIClusterProps = RouteComponentProps<{ namespace: string; name: string }>
@@ -55,69 +54,6 @@ const EditAICluster: React.FC<EditAIClusterProps> = ({
         ]).promise
     }
 
-    const onSaveHostsSelection = async (values: CIM.ClusterDeploymentHostsSelectionValues) => {
-        const hostIds = values.autoSelectHosts ? values.autoSelectedHostIds : values.selectedHostIds
-        const releasedAgents = agents.filter(
-            (a) =>
-                !hostIds.includes(a.metadata.uid) &&
-                a.spec?.clusterDeploymentName?.name === name &&
-                a.spec?.clusterDeploymentName?.namespace === namespace
-        )
-
-        await Promise.all(
-            releasedAgents.map((agent) => {
-                return patchResource(agent, [
-                    {
-                        op: 'replace',
-                        path: '/spec/clusterDeploymentName',
-                        value: {}, // means: delete; requires https://issues.redhat.com/browse/MGMT-7726
-                    },
-                ]).promise
-            })
-        )
-
-        const addAgents = agents.filter(
-            (a) =>
-                hostIds.includes(a.metadata.uid) &&
-                (a.spec?.clusterDeploymentName?.name !== name || a.spec?.clusterDeploymentName?.namespace !== namespace)
-        )
-        await Promise.all(
-            addAgents.map((agent) => {
-                return patchResource(agent, [
-                    {
-                        op: agent.spec?.clusterDeploymentName ? 'replace' : 'add',
-                        path: '/spec/clusterDeploymentName',
-                        value: {
-                            name,
-                            namespace,
-                        },
-                    },
-                ]).promise
-            })
-        )
-
-        if (clusterDeployment) {
-            await patchResource(clusterDeployment, [
-                {
-                    op: clusterDeployment.metadata.annotations ? 'replace' : 'add',
-                    path: '/metadata/annotations',
-                    value: getAnnotationsFromAgentSelector(clusterDeployment, values),
-                },
-            ]).promise
-        }
-    }
-
-    const onSaveNetworking = async (values: CIM.ClusterDeploymentNetworkingValues) => {
-        try {
-            const patches = getNetworkingPatches(agentClusterInstall, values)
-            if (patches.length > 0) {
-                await patchResource(agentClusterInstall, patches).promise
-            }
-        } catch (e) {
-            throw Error(`Failed to patch the AgentClusterInstall resource: ${e.message}`)
-        }
-    }
-
     const hostActions = {
         canEditHost: () => true,
         onEditHost: (agent: CIM.AgentK8sResource) => {
@@ -146,8 +82,8 @@ const EditAICluster: React.FC<EditAIClusterProps> = ({
                 usedClusterNames={[/* Not needed for the Edit flow */]}
                 onClose={history.goBack}
                 onSaveDetails={onSaveDetails}
-                onSaveNetworking={onSaveNetworking}
-                onSaveHostsSelection={onSaveHostsSelection}
+                onSaveNetworking={(values) => onSaveNetworking(agentClusterInstall, values)}
+                onSaveHostsSelection={(values) => onHostsNext({values, clusterDeployment, agents})}
                 hostActions={hostActions}
             />
             <EditAgentModal

@@ -1,5 +1,6 @@
 /* Copyright Contributors to the Open Cluster Management project */
 import DetailsForm from '../components/assisted-installer/DetailsForm'
+import HostsForm from '../components/assisted-installer/HostsForm'
 import NetworkForm from '../components/assisted-installer/NetworkForm'
 import { automationControlData, CREATE_CLOUD_CONNECTION } from './ControlDataHelpers'
 
@@ -44,6 +45,18 @@ const controlDataAI = [
             'Ensure these settings are correct. The saved cluster draft will be used to determine the available network resources. Therefore after you press Save you will not be able to change these cluster settings.',
         disableEditorOnSuccess: true,
         disablePreviousControlsOnSuccess: true,
+    },
+    {
+        id: 'aiHostsStep',
+        type: 'step',
+        title: 'Cluster hosts',
+    },
+    {
+        id: 'aiHosts',
+        type: 'custom',
+        component: <HostsForm />,
+        providerId: 'aiHosts',
+        mustValidate: true,
     },
     {
         id: 'aiNetworkStep',

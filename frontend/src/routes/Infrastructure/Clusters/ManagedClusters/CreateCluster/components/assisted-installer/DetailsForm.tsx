@@ -5,14 +5,13 @@ import { CIM } from 'openshift-assisted-ui-lib'
 import { ClusterImageSet, listClusterImageSets, Secret } from '@open-cluster-management/resources'
 import { set, get, isEqual, startCase, camelCase } from 'lodash'
 import { getValue } from 'temptifly'
-import { ClusterDetailsValues } from 'openshift-assisted-ui-lib/dist/src/common'
 
 const { ACMClusterDeploymentDetailsStep } = CIM
 
 type FormControl = {
-    active: ClusterDetailsValues
+    active: any
     disabled?: () => void
-    reverse?: (control: { active: ClusterDetailsValues }, templateObject: any) => void
+    reverse?: (control: { active: any }, templateObject: any) => void
     validate?: () => void
     summary?: () => void
     step?: any
@@ -31,7 +30,7 @@ const fields: any = {
 }
 
 const DetailsForm: React.FC<DetailsFormProps> = ({ control, handleChange, controlProps }) => {
-    const formRef = useRef<FormikProps<ClusterDetailsValues>>(null)
+    const formRef = useRef<FormikProps<any>>(null)
     useEffect(() => {
         if (control.active) {
             formRef?.current?.setValues(control.active, true)
@@ -57,7 +56,7 @@ const DetailsForm: React.FC<DetailsFormProps> = ({ control, handleChange, contro
 
         control.reverse = (
             control: {
-                active: ClusterDetailsValues
+                active: any
             },
             templateObject: any
         ) => {
