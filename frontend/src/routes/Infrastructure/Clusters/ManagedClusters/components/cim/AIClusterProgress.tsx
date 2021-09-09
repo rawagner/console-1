@@ -33,10 +33,9 @@ const fetchSecret: FetchSecret = (name, namespace) =>
     }).promise
 
 const AIClusterProgress: React.FC = () => {
-    const { clusterDeployment, agentClusterInstall, agents, infraEnv } = useContext(ClusterContext)
-    const infraAgents =
-        infraEnv && agents
-            ? agents.filter((a) => isMatch(a.metadata.labels, infraEnv.status?.agentLabelSelector?.matchLabels))
+    const { clusterDeployment, agentClusterInstall, agents } = useContext(ClusterContext)
+    const infraAgents = agents
+            ? agents.filter((a) => isMatch(a.metadata.labels, (clusterDeployment?.spec?.platform as any).agentBareMetal.agentSelector.matchLabels))
             : []
 
     // TODO(jtomasek): Figure out how to use this from ai-ui-lib (currently in ClusterDeploymentDetails which is not used by ACM)

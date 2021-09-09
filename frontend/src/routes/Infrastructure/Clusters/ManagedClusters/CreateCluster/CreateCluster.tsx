@@ -42,7 +42,7 @@ import { ProviderConnection, unpackProviderConnection } from '@open-cluster-mana
 import { Secret } from '@open-cluster-management/resources'
 import { createResource as createResourceTool } from '@open-cluster-management/resources'
 import { FeatureGates } from '../../../../../FeatureGates'
-import { getNetworkingPatches } from '../components/cim/utils'
+import { getNetworkingPatches } from './components/assisted-installer/utils'
 interface CreationStatus {
     status: string
     messages: any[] | null
@@ -277,11 +277,15 @@ export default function CreateClusterPage() {
                 control.mutation = (controlData: any[]) => {
                     return new Promise((resolve) => {
                         if (templateEditorRef.current) {
-                            const resourceJSON = templateEditorRef.current?.getResourceJSON()
+                            const resourceJSON = (templateEditorRef.current as any)?.getResourceJSON()
                             if (resourceJSON) {
                                 const networkForm = controlData.find((r: any) => r.id === 'aiNetwork')
                                 if (networkForm) {
                                     networkForm.resourceJSON = resourceJSON
+                                }
+                                const hostsForm = controlData.find((r: any) => r.id === 'aiHosts')
+                                if (hostsForm) {
+                                    hostsForm.resourceJSON = resourceJSON
                                 }
                                 createResource(resourceJSON, true, 'Saving draft...', 'Draft saved').then((status) => {
                                     if (status === 'ERROR') {

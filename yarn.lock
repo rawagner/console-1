@@ -14225,10 +14225,10 @@ temp-dir@^1.0.0:
   resolved "https://registry.yarnpkg.com/temp-dir/-/temp-dir-1.0.0.tgz#0a7c0ea26d3a39afa7e0ebea9c1fc0bc4daa011d"
   integrity sha1-CnwOom06Oa+n4OvqnB/AvE2qAR0=
 
-temptifly@^0.4.8:
-  version "0.4.8"
-  resolved "https://registry.yarnpkg.com/temptifly/-/temptifly-0.4.8.tgz#03a22c2371a43453635aa67ab1384d44c9fc9dd9"
-  integrity sha512-knaUjR8UJlZTDtKfBOJXTIX4/dVG9+bghuRNH06TJ3GVSnEvhr5JW/Lci286SY/XjKvquppkUVqcrVNeju4PlQ==
+temptifly@^0.4.13:
+  version "0.4.13"
+  resolved "https://registry.yarnpkg.com/temptifly/-/temptifly-0.4.13.tgz#303727986937b245e6f9a165b9b26986fd6849a1"
+  integrity sha512-th5WLMQJpLDCSj60U/hzbUHz93Fw9CUjX3jnCX2Z+CIkS3hI03vusFK8RdcEK9M/xJXDj8NqGRPPwXJwiuOWpg==
   dependencies:
     "@loadable/component" "^5.14.1"
     apollo-client "^2.2.8"
