@@ -3,7 +3,6 @@ import { AcmExpandableCard } from '@open-cluster-management/ui-components'
 import { Stack, StackItem } from '@patternfly/react-core'
 import { CIM } from 'openshift-assisted-ui-lib'
 import { useContext } from 'react'
-import isMatch from 'lodash/isMatch'
 import { ClusterContext } from '../../ClusterDetails/ClusterDetails'
 import { EventListFetchProps, FetchSecret } from 'openshift-assisted-ui-lib/dist/src/cim'
 import { getResource, Secret, SecretApiVersion, SecretKind } from '@open-cluster-management/resources'
@@ -34,8 +33,8 @@ const fetchSecret: FetchSecret = (name, namespace) =>
 
 const AIClusterProgress: React.FC = () => {
     const { clusterDeployment, agentClusterInstall, agents } = useContext(ClusterContext)
-    const infraAgents = agents
-            ? agents.filter((a) => isMatch(a.metadata.labels, (clusterDeployment?.spec?.platform as any).agentBareMetal.agentSelector.matchLabels))
+    const clusterAgents = agents
+            ? agents.filter((a) => a.spec.clusterDeploymentName?.name === clusterDeployment?.metadata.name && a.spec.clusterDeploymentName?.namespace === clusterDeployment?.metadata.namespace)
             : []
 
     // TODO(jtomasek): Figure out how to use this from ai-ui-lib (currently in ClusterDeploymentDetails which is not used by ACM)
@@ -66,7 +65,7 @@ const AIClusterProgress: React.FC = () => {
                                     <ClusterDeploymentProgress
                                         clusterDeployment={clusterDeployment}
                                         agentClusterInstall={agentClusterInstall}
-                                        agents={infraAgents}
+                                        agents={clusterAgents}
                                         onFetchEvents={handleFetchEvents}
                                     />
                                 </StackItem>
@@ -75,7 +74,7 @@ const AIClusterProgress: React.FC = () => {
                                         <ClusterDeploymentCredentials
                                             clusterDeployment={clusterDeployment}
                                             agentClusterInstall={agentClusterInstall}
-                                            agents={infraAgents}
+                                            agents={clusterAgents}
                                             fetchSecret={fetchSecret}
                                             consoleUrl={getConsoleUrl(clusterDeployment)}
                                         />
@@ -109,7 +108,7 @@ const AIClusterProgress: React.FC = () => {
             )}
             <div style={{ marginBottom: '24px' }}>
                 <AcmExpandableCard title="Cluster hosts" id="aihosts">
-                    <AgentTable agents={infraAgents} className="agents-table" />
+                    <AgentTable agents={clusterAgents} className="agents-table" />
                 </AcmExpandableCard>
             </div>
         </>

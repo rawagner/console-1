@@ -32,10 +32,15 @@ spec:
     name: {{{ai.name}}}
   holdInstallation: true
   provisionRequirements:
-    controlPlaneAgents: 0
+    controlPlaneAgents: 3
   imageSetRef:
     name: {{{ai.openshiftVersion}}}
-  networking: {}
+  networking:
+    clusterNetwork:
+    - cidr: 10.128.0.0/14
+      hostPrefix: 23
+    serviceNetwork:
+    - 172.30.0.0/16
 
 ---
 apiVersion: v1

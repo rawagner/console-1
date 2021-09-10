@@ -6,7 +6,7 @@ import { FormikProps } from 'formik'
 import { NetworkConfigurationValues } from 'openshift-assisted-ui-lib/dist/src/common/types/clusters'
 import { patchResource } from '@open-cluster-management/resources'
 import { get, isEqual } from 'lodash'
-import { agentsState } from '../../../../../../../atoms'
+import { agentClusterInstallsState, agentsState, clusterDeploymentsState } from '../../../../../../../atoms'
 
 const { ACMClusterDeploymentNetworkingStep, EditAgentModal } = CIM
 
@@ -59,12 +59,17 @@ const NetworkForm: React.FC<NetworkFormProps> = ({ control, handleChange }) => {
     }, [control])
 
     const [editAgent, setEditAgent] = useState()
-    const [agents] = useRecoilValue(waitForAll([agentsState]))
+    const [agents, clusterDeployments, agentClusterInstalls] = useRecoilValue(waitForAll([agentsState, clusterDeploymentsState, agentClusterInstallsState]))
 
     const { resourceJSON = {} } = control
     const { createResources = [] } = resourceJSON
-    const clusterDeployment = createResources.find((r: { kind: string }) => r.kind === 'ClusterDeployment')
-    const agentClusterInstall = createResources.find((r: { kind: string }) => r.kind === 'AgentClusterInstall')
+    const cdName = createResources.find((r: { kind: string }) => r.kind === 'ClusterDeployment').metadata.name
+    const cdNamespace = createResources.find((r: { kind: string }) => r.kind === 'ClusterDeployment').metadata.namespace
+    const aciName = createResources.find((r: { kind: string }) => r.kind === 'AgentClusterInstall').metadata.name
+    const aciNamespace = createResources.find((r: { kind: string }) => r.kind === 'AgentClusterInstall').metadata.namespace
+    
+    const clusterDeployment = clusterDeployments.find(({ metadata }) => metadata.name === cdName && metadata.namespace === cdNamespace)
+    const agentClusterInstall = agentClusterInstalls.find(({ metadata }) => metadata.name === aciName && metadata.namespace === aciNamespace)
 
     useEffect(() => (control.agentClusterInstall = agentClusterInstall), [control, agentClusterInstall])
 
@@ -78,8 +83,8 @@ const NetworkForm: React.FC<NetworkFormProps> = ({ control, handleChange }) => {
     }, [])
 
     const matchingAgents = agents.filter((a) =>
-        a.spec?.clusterDeploymentName?.name === clusterDeployment.metadata.name &&
-        a.spec?.clusterDeploymentName?.namespace === clusterDeployment.metadata.namespace
+        a.spec?.clusterDeploymentName?.name === clusterDeployment?.metadata.name &&
+        a.spec?.clusterDeploymentName?.namespace === clusterDeployment?.metadata.namespace
     )
 
     return (
@@ -91,10 +96,16 @@ const NetworkForm: React.FC<NetworkFormProps> = ({ control, handleChange }) => {
                 agentClusterInstall={agentClusterInstall}
                 agents={matchingAgents}
                 hostActions={{
-                    onEditHost: (host) => {
-                        const agent = agents.find(({ metadata }) => metadata.uid === host.id)
-                        setEditAgent(agent)
-                    }
+                    onEditHost: setEditAgent,
+                    canEditRole: () => true,
+                    onEditRole: (agent, role) =>
+                        patchResource(agent, [
+                            {
+                                op: 'replace',
+                                path: '/spec/role',
+                                value: role,
+                            },
+                        ]).promise
                 }}
             />
             <EditAgentModal
