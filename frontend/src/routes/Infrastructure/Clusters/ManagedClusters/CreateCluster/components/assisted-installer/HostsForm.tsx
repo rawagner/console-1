@@ -91,14 +91,7 @@ const HostsForm: React.FC<HostsFormProps> = ({ control, handleChange }) => {
             clusterDeployment={clusterDeployment}
             agentClusterInstall={agentClusterInstall}
             agents={agents}
-            /*
-            hostActions={{
-                onEditHost: (host) => {
-                    const agent = agents.find(({ metadata }) => metadata.uid === host.id)
-                    setEditAgent(agent)
-                }
-            }}
-            */
+            hostActions={{}}
 
         />) : <div>loading</div>
 }
