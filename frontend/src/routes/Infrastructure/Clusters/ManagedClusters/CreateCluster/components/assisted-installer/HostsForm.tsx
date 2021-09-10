@@ -1,5 +1,5 @@
 /* Copyright Contributors to the Open Cluster Management project */
-import { useCallback, useRef, useEffect } from 'react'
+import { useCallback, useRef, useEffect, useState } from 'react'
 import { CIM } from 'openshift-assisted-ui-lib'
 import { useRecoilValue, waitForAll } from 'recoil'
 import { FormikProps } from 'formik'
@@ -29,6 +29,7 @@ type HostsFormProps = {
 const fields: any = {}
 
 const HostsForm: React.FC<HostsFormProps> = ({ control, handleChange }) => {
+    const [error, setError] = useState<string>()
     const formRef = useRef<FormikProps<CIM.ClusterDeploymentHostsSelectionValues>>(null)
     const [agents, clusterDeployments, agentClusterInstalls] = useRecoilValue(waitForAll([agentsState, clusterDeploymentsState, agentClusterInstallsState]))
     const { resourceJSON = {} } = control
@@ -47,6 +48,7 @@ const HostsForm: React.FC<HostsFormProps> = ({ control, handleChange }) => {
             control.active = formRef?.current?.values
         }
         control.validate = async () => {
+            setError(undefined)
             formRef?.current?.setFieldError('patchError', undefined)
             await formRef?.current?.submitForm();
             if (!isEmpty(formRef?.current?.errors)) {
@@ -56,7 +58,7 @@ const HostsForm: React.FC<HostsFormProps> = ({ control, handleChange }) => {
             try {
                 await onHostsNext({ values: control.active, clusterDeployment, agents });
             } catch (err) {
-                formRef?.current?.setFieldError('patchError', err?.message || 'An error occured')
+                setError(err?.message || 'An error occured')
                 return {
                     resourcesError: 'Failed patching resources'
                 }
