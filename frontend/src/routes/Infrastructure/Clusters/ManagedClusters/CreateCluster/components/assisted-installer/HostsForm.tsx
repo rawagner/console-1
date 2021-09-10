@@ -92,6 +92,7 @@ const HostsForm: React.FC<HostsFormProps> = ({ control, handleChange }) => {
             agentClusterInstall={agentClusterInstall}
             agents={agents}
             hostActions={{}}
+            error={error}
 
         />) : <div>loading</div>
 }
