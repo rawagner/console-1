@@ -33,7 +33,6 @@
         "resolveJsonModule": true,
         "isolatedModules": true,
         "noEmit": true,
-        "useUnknownInCatchVariables": false,
     },
     "include": ["src", "webpack.config.ts"]
 }

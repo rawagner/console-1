@@ -360,7 +360,8 @@ export default function CreateClusterPage() {
                 }
             } catch (e) {
                 status = 'ERROR'
-                messages = [`Failed to configure the cluster network: ${e.message}`]
+                const msg = e instanceof Error ? e.message : '';
+                messages = [`Failed to configure the cluster network: ${msg}`]
             }
             setCreationStatus({ status, messages })
             return status

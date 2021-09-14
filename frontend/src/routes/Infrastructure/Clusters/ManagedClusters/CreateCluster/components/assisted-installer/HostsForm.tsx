@@ -63,7 +63,8 @@ const HostsForm: React.FC<HostsFormProps> = ({ control, handleChange }) => {
             try {
                 await onHostsNext({ values: control.active, clusterDeployment, agents })
             } catch (err) {
-                setError(err?.message || 'An error occured')
+                const msg = err instanceof Error ? err?.message : undefined
+                setError(msg || 'An error occured')
                 return {
                     resourcesError: 'Failed patching resources',
                 }
@@ -96,7 +97,6 @@ const HostsForm: React.FC<HostsFormProps> = ({ control, handleChange }) => {
             clusterDeployment={clusterDeployment}
             agentClusterInstall={agentClusterInstall}
             agents={agents}
-            hostActions={{}}
             error={error}
         />
     ) : (

@@ -74,8 +74,8 @@ const controlDataAI = [
     {
         id: 'reviewFinish',
         type: 'review',
-        title: 'Review and Configure',
-        nextButtonLabel: 'Configure',
+        title: 'Review and install',
+        nextButtonLabel: 'Save and install',
     },
 ]
 
