@@ -116,9 +116,6 @@ export const getNetworkingPatches = (agentClusterInstall: CIM.AgentClusterInstal
         )
     }
 
-    appendPatch(agentClusterInstallPatches, '/spec/apiVIP', values.apiVip, agentClusterInstall.spec?.apiVIP)
-
-    appendPatch(agentClusterInstallPatches, '/spec/ingressVIP', values.ingressVip, agentClusterInstall.spec?.ingressVIP)
     appendPatch(agentClusterInstallPatches, '/spec/holdInstallation', false, agentClusterInstall.spec?.holdInstallation)
 
     if (agentClusterInstall?.spec?.provisionRequirements?.controlPlaneAgents === 1) {
@@ -128,6 +125,9 @@ export const getNetworkingPatches = (agentClusterInstall: CIM.AgentClusterInstal
             [{ cidr: values.hostSubnet }],
             agentClusterInstall.spec?.networking?.machineNetwork?.[0]?.cidr
         )
+    } else {
+        appendPatch(agentClusterInstallPatches, '/spec/apiVIP', values.apiVip, agentClusterInstall.spec?.apiVIP)
+        appendPatch(agentClusterInstallPatches, '/spec/ingressVIP', values.ingressVip, agentClusterInstall.spec?.ingressVIP)
     }
 
     return agentClusterInstallPatches
