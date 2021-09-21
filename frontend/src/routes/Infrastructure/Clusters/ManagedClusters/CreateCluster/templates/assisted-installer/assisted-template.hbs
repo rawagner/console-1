@@ -65,7 +65,7 @@ apiVersion: cluster.open-cluster-management.io/v1
 kind: ManagedCluster
 metadata:
   labels:
-    cloud: Hybrid
+    cloud: 'On Premise'
     name: {{{ai.name}}}
     {{#if clusterSet}}
     cluster.open-cluster-management.io/clusterset: '{{{clusterSet}}}'
@@ -84,7 +84,7 @@ spec:
   clusterName: {{{ai.name}}}
   clusterNamespace: {{{ai.name}}}
   clusterLabels:
-    cloud: Hybrid
+    cloud: 'On Premise'
   applicationManager:
     enabled: true
   policyController:
