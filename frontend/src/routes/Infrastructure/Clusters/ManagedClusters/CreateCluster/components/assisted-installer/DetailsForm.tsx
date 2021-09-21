@@ -9,7 +9,7 @@ import { ClusterDetailsValues } from 'openshift-assisted-ui-lib/dist/src/common'
 import { clusterDeploymentsState } from '../../../../../../../atoms'
 import { useRecoilState } from 'recoil'
 
-const { ACMClusterDeploymentDetailsStep, FeatureGateContextProvider, ACM_ENABLED_FEATURES } = CIM
+const { ACMClusterDeploymentDetailsStep, FeatureGateContextProvider, ACM_ENABLED_FEATURES, LoadingState } = CIM
 
 type FormControl = {
     active: ClusterDetailsValues
@@ -92,12 +92,16 @@ const DetailsForm: React.FC<DetailsFormProps> = ({ control, handleChange, contro
         }
     }, [control])
 
-    const [clusterImages, setClusterImages] = useState<ClusterImageSet[]>([])
+    const [clusterImages, setClusterImages] = useState<ClusterImageSet[]>()
     useEffect(() => {
         const fetchImages = async () => {
-            const images = await listClusterImageSets().promise
-            if (!isEqual(images, clusterImages)) {
-                setClusterImages(images)
+            try {
+                const images = await listClusterImageSets().promise
+                if (!isEqual(images, clusterImages)) {
+                    setClusterImages(images)
+                }
+            } catch {
+                setClusterImages([])
             }
         }
         fetchImages()
@@ -115,7 +119,7 @@ const DetailsForm: React.FC<DetailsFormProps> = ({ control, handleChange, contro
     )
 
     const usedClusterNames = useMemo(() => clusterDeployments.map((cd) => cd.metadata.name || ''), [])
-    return (
+    return clusterImages ? (
         <FeatureGateContextProvider features={ACM_ENABLED_FEATURES}>
             <ACMClusterDeploymentDetailsStep
                 formRef={formRef}
@@ -126,6 +130,8 @@ const DetailsForm: React.FC<DetailsFormProps> = ({ control, handleChange, contro
                 defaultBaseDomain={controlProps?.stringData?.baseDomain}
             />
         </FeatureGateContextProvider>
+    ) : (
+        <LoadingState />
     )
 }
 

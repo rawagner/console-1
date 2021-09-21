@@ -27,7 +27,7 @@ import { RbacDropdown } from '../../../components/Rbac'
 import { deleteResource } from '../../../resources'
 import { OnPremiseBanner } from '../Clusters/ManagedClusters/components/cim/OnPremiseBanner'
 
-const { AGENT_LOCATION_LABEL_KEY } = CIM
+const { AGENT_LOCATION_LABEL_KEY, getAgentStatus } = CIM
 
 const InfraEnvironmentsPage: React.FC = () => {
     const [, setRoute] = useRecoilState(acmRouteState)
@@ -64,6 +64,7 @@ const InfraEnvironmentsPage: React.FC = () => {
                     WrappingComponent={PageSection}
                     titleKey="cim:cim.infra.banner.header"
                     textKey="cim:cim.infra.banner.body"
+                    footerKey="cim:cim.infra.banner.footer"
                 />
 
                 <PageSection>
@@ -157,14 +158,18 @@ const InfraEnvsTable: React.FC<InfraEnvsTableProps> = ({ infraEnvs, agents }) =>
                             const infraAgents = agents.filter((a) =>
                                 isMatch(a.metadata.labels, infraEnv.status?.agentLabelSelector?.matchLabels)
                             )
-                            const errorAgents = infraAgents.filter((a) => a.status?.debugInfo?.state === 'error')
+                            const errorAgents = infraAgents.filter((a) => getAgentStatus(a)[0] === 'error')
+                            const warningAgents = infraAgents.filter(
+                                (a) => a.status?.debugInfo?.state === 'insufficient'
+                            )
+
                             return (
                                 <Link to={`${getDetailsLink(infraEnv)}/hosts`}>
                                     {infraAgents.length ? (
                                         <AcmInlineStatusGroup
-                                            healthy={infraAgents.length - errorAgents.length}
+                                            healthy={infraAgents.length - errorAgents.length - warningAgents.length}
                                             danger={errorAgents.length}
-                                            unknown={0}
+                                            warning={warningAgents.length}
                                         />
                                     ) : (
                                         0

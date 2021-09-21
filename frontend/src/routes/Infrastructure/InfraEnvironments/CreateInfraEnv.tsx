@@ -19,8 +19,6 @@ import '../Clusters/ManagedClusters/CreateCluster/style.css'
 import 'temptifly/dist/styles.css'
 import { createProject, createResource } from '../../../resources'
 
-
-
 const controlData = [
     {
         name: 'creation.ocp.cloud.connection',
@@ -136,6 +134,5 @@ const CreateInfraEnv: React.FC = () => {
         </AcmPage>
     )
 }
-
 
 export default CreateInfraEnv
