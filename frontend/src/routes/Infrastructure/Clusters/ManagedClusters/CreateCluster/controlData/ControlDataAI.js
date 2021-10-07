@@ -31,7 +31,7 @@ const controlDataAI = [
     {
         id: 'ai',
         type: 'custom',
-        component: <DetailsForm />,
+        component: DetailsForm,
         providerId: 'ai',
         mustValidate: true,
         encodeValues: ['pullSecret'],
@@ -55,7 +55,7 @@ const controlDataAI = [
     {
         id: 'aiHosts',
         type: 'custom',
-        component: <HostsForm />,
+        component: HostsForm,
         providerId: 'aiHosts',
         mustValidate: true,
     },
@@ -67,7 +67,7 @@ const controlDataAI = [
     {
         id: 'aiNetwork',
         type: 'custom',
-        component: <NetworkForm />,
+        component: NetworkForm,
         providerId: 'aiNetwork',
         mustValidate: true,
     },

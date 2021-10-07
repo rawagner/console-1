@@ -25,7 +25,7 @@ const controlData = [
         tooltip: 'tooltip.creation.ocp.cloud.connection',
         id: 'ai',
         type: 'custom',
-        component: <InfraEnvForm />,
+        component: InfraEnvForm,
         providerId: 'aiNetwork',
     },
 ]
