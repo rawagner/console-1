@@ -5,7 +5,7 @@ import { CIM } from 'openshift-assisted-ui-lib'
 import { useRecoilValue } from 'recoil'
 import { configMapsState } from '../../../../atoms'
 import { DOC_VERSION } from '../../../../lib/doc-util'
-import { fetchSecret, getAIConfigMap, savePullSecret, saveSSHKey } from '../../Clusters/ManagedClusters/CreateCluster/components/assisted-installer/utils'
+import { fetchSecret, getAIConfigMap, savePullSecret, saveSSHKey, onEditNtpSources } from '../../Clusters/ManagedClusters/CreateCluster/components/assisted-installer/utils'
 
 const { EnvironmentDetails, EnvironmentErrors } = CIM
 
@@ -30,6 +30,7 @@ const DetailsTab: React.FC<DetailsTabProps> = ({ infraEnv, infraAgents, bareMeta
                             fetchSecret={fetchSecret}
                             onEditPullSecret={savePullSecret}
                             onEditSSHKey={saveSSHKey}
+                            onEditNtpSources={onEditNtpSources}
                             hasAgents={!!infraAgents.length}
                             hasBMHs={!!bareMetalHosts.length}
                         />

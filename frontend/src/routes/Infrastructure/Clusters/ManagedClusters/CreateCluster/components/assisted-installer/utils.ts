@@ -651,4 +651,22 @@ export const savePullSecret = (values: CIM.EditPullSecretFormikValues, infraEnv:
     }
 }
 
+export const onEditNtpSources = (values: CIM.EditNtpSourcesFormikValues, infraEnv: CIM.InfraEnvK8sResource) => {
+    const patches: any[] = []
+    if (values.enableNtpSources === 'auto') {
+        if (infraEnv.spec?.additionalNTPSources) {
+            patches.push({
+                op: 'remove',
+                path: '/spec/additionalNTPSources',
+            })
+        }
+    } else {
+        appendPatch(patches, '/spec/additionalNTPSources', values.additionalNtpSources.split(',').map((s) => s.trim()), infraEnv.spec.additionalNTPSources)
+    }
+    return patchResource(
+        infraEnv,
+        patches
+    ).promise
+}
+
 
