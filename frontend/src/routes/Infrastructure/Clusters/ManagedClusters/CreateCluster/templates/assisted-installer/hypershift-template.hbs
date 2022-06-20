@@ -109,7 +109,8 @@ spec:
     agent:
       agentLabelSelector:
         matchLabels:
-          'agentclusterinstalls.extensions.hive.openshift.io/hostedcluster': '{{{this.clusterName}}}/{{{this.name}}}'
+          'agentclusterinstalls.extensions.hive.openshift.io/nodePool': '{{{this.name}}}'
+          'agentclusterinstalls.extensions.hive.openshift.io/nodePoolNs': '{{{this.clusterName}}}'
   release:
     image: {{{this.releaseImage}}}
 

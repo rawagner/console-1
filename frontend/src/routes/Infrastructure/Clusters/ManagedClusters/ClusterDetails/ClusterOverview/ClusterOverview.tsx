@@ -1,6 +1,6 @@
 /* Copyright Contributors to the Open Cluster Management project */
 
-import { ClusterCuratorDefinition, ClusterStatus, ManagedClusterDefinition } from '../../../../../../resources'
+import { ClusterCuratorDefinition, ClusterStatus, getResource, ManagedClusterDefinition } from '../../../../../../resources'
 import {
     AcmButton,
     AcmDescriptionList,
@@ -33,14 +33,35 @@ import { StatusField } from '../../components/StatusField'
 import { StatusSummaryCount } from '../../components/StatusSummaryCount'
 import { ClusterContext } from '../ClusterDetails'
 import AIClusterDetails from '../../components/cim/AIClusterDetails'
+import AIHypershiftClusterDetails from '../../components/cim/AIHypershiftClusterDetails'
+import jsYaml from 'js-yaml'
 
 const { getClusterProperties } = CIM
 
 export function ClusterOverviewPageContent(props: { canGetSecret?: boolean }) {
-    const { cluster, clusterCurator, clusterDeployment, agentClusterInstall } = useContext(ClusterContext)
+    const { cluster, clusterCurator, clusterDeployment, agentClusterInstall, hostedCluster } = useContext(ClusterContext)
     const { t } = useTranslation()
     const [showEditLabels, setShowEditLabels] = useState<boolean>(false)
     const [showChannelSelectModal, setShowChannelSelectModal] = useState<boolean>(false)
+    const [hypershiftKubeAPI, setHypershiftKubeAPI] = React.useState();
+
+    const hypershiftKubeconfig = hostedCluster?.status?.kubeconfig?.name;
+
+    React.useEffect(() => {
+        const fetchKubeconfig = async () => {
+            const kubeconfig = await getResource({
+                apiVersion: 'v1',
+                kind: 'Secret',
+                metadata: {
+                    name: hypershiftKubeconfig,
+                    namespace: hostedCluster?.metadata.namespace,
+                }
+            }).promise
+            const kubeconfigString = atob((kubeconfig as any).data?.kubeconfig);
+            setHypershiftKubeAPI((jsYaml.load(kubeconfigString) as any).clusters?.[0]?.cluster?.server)
+        }
+        hypershiftKubeconfig && fetchKubeconfig()
+    }, [hypershiftKubeconfig])
 
     const clusterProperties: { [key: string]: { key: string; value?: React.ReactNode; keyAction?: React.ReactNode } } =
         {
@@ -151,7 +172,7 @@ export function ClusterOverviewPageContent(props: { canGetSecret?: boolean }) {
             },
             kubeApiServer: {
                 key: t('table.kubeApiServer'),
-                value: cluster?.kubeApiServer && <AcmInlineCopy text={cluster?.kubeApiServer} id="kube-api-server" />,
+                value: cluster?.kubeApiServer ? <AcmInlineCopy text={cluster?.kubeApiServer} id="kube-api-server" /> : cluster?.isHypershift ? hypershiftKubeAPI : undefined,
             },
             consoleUrl: {
                 key: t('table.consoleUrl'),
@@ -229,9 +250,7 @@ export function ClusterOverviewPageContent(props: { canGetSecret?: boolean }) {
         leftItems.splice(5, 0, clusterProperties.channel)
     }
 
-    const isHybrid = cluster?.provider === Provider.hybrid
-
-    if (isHybrid && !!(clusterDeployment && agentClusterInstall)) {
+    if (cluster?.provider === Provider.hybrid && clusterDeployment && agentClusterInstall) {
         const aiClusterProperties = getClusterProperties(clusterDeployment, agentClusterInstall)
 
         leftItems = [
@@ -253,6 +272,14 @@ export function ClusterOverviewPageContent(props: { canGetSecret?: boolean }) {
             aiClusterProperties.serviceNetworkCidr,
         ]
     }
+
+    let details = <ProgressStepBar />
+    if (cluster?.provider === Provider.hybrid) {
+        details = <AIClusterDetails />;
+    } else if (cluster?.provider === Provider.hypershift) {
+        details = <AIHypershiftClusterDetails />;
+    }
+
     return (
         <AcmPageContent id="overview">
             <PageSection>
@@ -271,7 +298,7 @@ export function ClusterOverviewPageContent(props: { canGetSecret?: boolean }) {
                     displayName={cluster!.displayName}
                     close={() => setShowEditLabels(false)}
                 />
-                {isHybrid ? <AIClusterDetails /> : <ProgressStepBar />}
+                {details}
                 <AcmDescriptionList title={t('table.details')} leftItems={leftItems} rightItems={rightItems} />
                 {cluster!.isManaged &&
                     [

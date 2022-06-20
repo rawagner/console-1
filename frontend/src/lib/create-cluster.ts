@@ -60,6 +60,10 @@ export async function createCluster(resources: any[]) {
             case 'ManagedCluster':
                 ;({ name: namespace } = metadata)
                 break
+            
+            case 'HostedCluster':
+                ;({ name: namespace } = metadata)
+                break
 
             default:
                 if (spec && spec.clusterNamespace) {

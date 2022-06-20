@@ -20,6 +20,8 @@ import { managedClusterSetLabel } from '../managed-cluster-set'
 import { AddonStatus } from './get-addons'
 import { getLatest } from './utils'
 import { AgentClusterInstallKind } from '../agent-cluster-install'
+import { HostedCluster } from '../hosted-cluster'
+import { NodePool } from '../node-pool'
 
 export enum ClusterStatus {
     'pending' = 'pending',
@@ -94,6 +96,13 @@ export type Cluster = {
     }
     isSNOCluster: boolean
     creationTimestamp?: string
+    isHypershift: boolean
+    kubeconfig?: string
+    kubeadmin?: string
+    hypershift?: {
+        nodePools: string[]
+        secrets: string[]
+    }
 }
 
 export type DistributionInfo = {
@@ -105,8 +114,6 @@ export type DistributionInfo = {
 }
 
 export type HiveSecrets = {
-    kubeconfig?: string
-    kubeadmin?: string
     installConfig?: string
 }
 
@@ -160,6 +167,8 @@ export function mapClusters(
     clusterClaims: ClusterClaim[] = [],
     clusterCurators: ClusterCurator[] = [],
     agentClusterInstalls: AgentClusterInstallK8sResource[] = []
+    hostedClusters: HostedCluster[] = [],
+    nodePools: NodePool[] = []
 ) {
     const mcs = managedClusters.filter((mc) => mc.metadata?.name) ?? []
     const uniqueClusterNames = Array.from(
@@ -167,6 +176,7 @@ export function mapClusters(
             ...clusterDeployments.map((cd) => cd.metadata.name),
             ...managedClusterInfos.map((mc) => mc.metadata.name),
             ...mcs.map((mc) => mc.metadata.name),
+            ...hostedClusters.map((hc) => hc.metadata.name)
         ])
     )
     return uniqueClusterNames.map((cluster) => {
@@ -183,6 +193,7 @@ export function mapClusters(
                     aci.metadata.namespace === clusterDeployment.metadata.namespace &&
                     aci.metadata.name === clusterDeployment?.spec?.clusterInstallRef?.name
             )
+        const hostedCluster = hostedClusters.find((hc) => hc.metadata.name === cluster)
         return getCluster(
             managedClusterInfo,
             clusterDeployment,
@@ -191,7 +202,9 @@ export function mapClusters(
             addons,
             clusterClaim,
             clusterCurator,
-            agentClusterInstall
+            agentClusterInstall,
+            hostedCluster,
+            nodePools
         )
     })
 }
@@ -205,6 +218,8 @@ export function getCluster(
     clusterClaim: ClusterClaim | undefined,
     clusterCurator: ClusterCurator | undefined,
     agentClusterInstall: AgentClusterInstallK8sResource | undefined
+    hostedCluster: HostedCluster | undefined,
+    nodePools: NodePool[] | undefined
 ): Cluster {
     const { status, statusMessage } = getClusterStatus(
         clusterDeployment,
@@ -227,13 +242,14 @@ export function getCluster(
             managedClusterInfo?.metadata.namespace,
         status,
         statusMessage,
-        provider: getProvider(managedClusterInfo, managedCluster, clusterDeployment),
+        provider: getProvider(managedClusterInfo, managedCluster, clusterDeployment, hostedCluster),
         distribution: getDistributionInfo(managedClusterInfo, managedCluster, clusterDeployment, clusterCurator),
         labels: managedCluster?.metadata.labels ?? managedClusterInfo?.metadata.labels,
         nodes: getNodes(managedClusterInfo),
         kubeApiServer: getKubeApiServer(clusterDeployment, managedClusterInfo, agentClusterInstall),
         consoleURL: getConsoleUrl(clusterDeployment, managedClusterInfo, managedCluster, agentClusterInstall),
         isHive: !!clusterDeployment,
+        isHypershift: !!hostedCluster,
         isManaged: !!managedCluster || !!managedClusterInfo,
         isCurator: !!clusterCurator,
         isSNOCluster: getIsSNOCluster(agentClusterInstall),
@@ -247,6 +263,12 @@ export function getCluster(
             clusterDeployment?.metadata.creationTimestamp ??
             managedCluster?.metadata.creationTimestamp ??
             managedClusterInfo?.metadata.creationTimestamp,
+        kubeconfig: clusterDeployment?.spec?.clusterMetadata?.adminKubeconfigSecretRef.name || hostedCluster?.status?.kubeconfig?.name,
+        kubeadmin: clusterDeployment?.spec?.clusterMetadata?.adminPasswordSecretRef.name || hostedCluster?.status?.kubeadminPassword?.name,
+        hypershift: hostedCluster ? {
+            nodePools: nodePools?.filter((np) => np.spec.clusterName === hostedCluster?.metadata.name && np.metadata.namespace === hostedCluster?.metadata.namespace),
+            secrets: [hostedCluster.spec.sshKey.name, hostedCluster.spec.pullSecret.name]
+        } : undefined
     }
 }
 
@@ -342,8 +364,14 @@ export function getHiveConfig(clusterDeployment?: ClusterDeployment, clusterClai
 export function getProvider(
     managedClusterInfo?: ManagedClusterInfo,
     managedCluster?: ManagedCluster,
-    clusterDeployment?: ClusterDeployment
+    clusterDeployment?: ClusterDeployment,
+    hostedCluster?: HostedCluster
 ) {
+
+    if (hostedCluster) {
+        return Provider.hypershift
+    }
+
     const clusterInstallRef = clusterDeployment?.spec?.clusterInstallRef
     if (clusterInstallRef?.kind === AgentClusterInstallKind) {
         return Provider.hybrid
