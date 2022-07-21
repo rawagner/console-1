@@ -6,6 +6,7 @@ import { onCopy } from '../../../../../ui-components/utils'
 import {
     Alert,
     AlertVariant,
+    ButtonProps,
     Card,
     CardBody,
     CardFooter,
@@ -22,7 +23,52 @@ import { useRecoilState } from 'recoil'
 import { secretsState } from '../../../../../atoms'
 import { ClusterContext } from '../ClusterDetails/ClusterDetails'
 import { TFunction } from 'i18next'
-import { useTranslation } from '../../../../../lib/acm-i18next'
+import { Trans, useTranslation } from '../../../../../lib/acm-i18next'
+
+type ImportButtonProps = {
+    loading?: boolean
+    error?: string
+    importSecret?: Secret
+    children?: React.ReactNode
+    variant?: ButtonProps['variant']
+    isInline?: boolean
+}
+
+const ImportButton = ({ importSecret, loading, error, children, variant, isInline }: ImportButtonProps) => {
+    const { t } = useTranslation()
+
+    const [copied, setCopied] = useState<boolean>(false)
+    useEffect(() => {
+        /* istanbul ignore if */
+        if (copied) {
+            setTimeout(() => setCopied(false), 2000)
+        }
+    }, [copied])
+
+    if (loading || error || !importSecret) {
+        return null
+    }
+
+    const v1ImportCommand = getImportCommand(importSecret, 'v1', t)
+
+    return (
+        <Tooltip isVisible={copied} content={t('copied')} trigger="click">
+            <AcmButton
+                id="import-command"
+                variant={variant || 'secondary'}
+                icon={<CopyIcon />}
+                iconPosition="right"
+                onClick={(e: any) => {
+                    onCopy(e, v1ImportCommand)
+                    setCopied(true)
+                }}
+                isInline={isInline}
+            >
+                {children || t('import.command.copy')}
+            </AcmButton>
+        </Tooltip>
+    )
+}
 
 export function ImportCommandContainer() {
     const { t } = useTranslation()
@@ -76,9 +122,30 @@ export function ImportCommandContainer() {
         return (
             <>
                 <div style={{ marginBottom: '12px' }}>
-                    <AcmAlert isInline variant={AlertVariant.info} title={t('import.command.pendingimport')} />
+                    <AcmAlert
+                        isInline
+                        variant={AlertVariant.info}
+                        title={t('import.command.pendingimport')}
+                        message={
+                            cluster.isHypershift && (
+                                <Trans>
+                                    Hosted cluster requires a manual import. Log into your cluster and{' '}
+                                    <ImportButton
+                                        variant="link"
+                                        isInline
+                                        error={error}
+                                        loading={loading}
+                                        importSecret={importSecret}
+                                    >
+                                        run the following command
+                                    </ImportButton>
+                                </Trans>
+                            )
+                        }
+                        noClose={cluster.isHypershift}
+                    />
                 </div>
-                <ImportCommand importSecret={importSecret} />
+                {!cluster.isHypershift && <ImportCommand importSecret={importSecret} />}
             </>
         )
     }
@@ -96,19 +163,10 @@ type ImportCommandProps = {
 export function ImportCommand(props: ImportCommandProps) {
     const { t } = useTranslation()
 
-    const [copied, setCopied] = useState<boolean>(false)
-    useEffect(() => {
-        /* istanbul ignore if */
-        if (copied) {
-            setTimeout(() => setCopied(false), 2000)
-        }
-    }, [copied])
-
     if (props.loading || props.error || !props.importSecret) {
         return null
     }
 
-    const v1ImportCommand = getImportCommand(props.importSecret, 'v1', t)
     const v1beta1ImportCommand = getImportCommand(props.importSecret, 'v1beta1', t)
 
     return (
@@ -122,20 +180,7 @@ export function ImportCommand(props: ImportCommandProps) {
                                 <strong style={{ marginBottom: '12px', fontSize: '14px', display: 'block' }}>
                                     {t('import.command.copy.description')}
                                 </strong>
-                                <Tooltip isVisible={copied} content={t('copied')} trigger="click">
-                                    <AcmButton
-                                        id="import-command"
-                                        variant="secondary"
-                                        icon={<CopyIcon />}
-                                        iconPosition="right"
-                                        onClick={(e: any) => {
-                                            onCopy(e, v1ImportCommand)
-                                            setCopied(true)
-                                        }}
-                                    >
-                                        {t('import.command.copy')}
-                                    </AcmButton>
-                                </Tooltip>
+                                <ImportButton {...props} />
                                 <Alert
                                     isInline
                                     title={t('import.command.311.title')}
