@@ -19,8 +19,8 @@ export enum Provider {
     ibmpower = 'ibmpower',
     ibmz = 'ibmz',
     baremetal = 'bmc',
+    hostinventory = 'hostinventory',
     hybrid = 'hybrid',
-    hypershift = 'hypershift',
     alibaba = 'alibaba',
     other = 'other',
 }
@@ -39,7 +39,7 @@ export const ProviderShortTextMap = {
     [Provider.baremetal]: 'Bare metal',
     [Provider.vmware]: 'VMware',
     [Provider.hybrid]: 'Assisted installation',
-    [Provider.hypershift]: 'Hypershift',
+    [Provider.hostinventory]: 'Host inventory',
     [Provider.alibaba]: 'Alibaba',
     [Provider.other]: 'Other',
 }
@@ -58,7 +58,7 @@ export const ProviderLongTextMap = {
     [Provider.baremetal]: 'Bare metal',
     [Provider.vmware]: 'VMware vSphere',
     [Provider.hybrid]: 'Assisted installation',
-    [Provider.hypershift]: 'Hypershift',
+    [Provider.hostinventory]: 'Host inventory',
     [Provider.alibaba]: 'Alibaba Cloud',
     [Provider.other]: 'Other',
 }
@@ -76,8 +76,8 @@ export const ProviderIconMap = {
     [Provider.ibmz]: AcmIconVariant.ibmlogo,
     [Provider.baremetal]: AcmIconVariant.baremetal,
     [Provider.vmware]: AcmIconVariant.vmware,
+    [Provider.hostinventory]: AcmIconVariant.hybrid,
     [Provider.hybrid]: AcmIconVariant.hybrid,
-    [Provider.hypershift]: AcmIconVariant.hypershift,
     [Provider.alibaba]: AcmIconVariant.alibaba,
     [Provider.other]: AcmIconVariant.cloud,
 }
