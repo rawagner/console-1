@@ -21,5 +21,5 @@ export interface OwnerReference {
   controller?: boolean
   kind: string
   name: string
-  uid?: string
+  uid: string
 }
